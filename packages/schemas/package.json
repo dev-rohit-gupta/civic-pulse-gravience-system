@@ -1,0 +1,16 @@
+{
+  "name": "@civic-pulse/schemas",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "npx tsc"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0"
+  },
+  "dependencies": {
+    "zod": "^4.2.1"
+  }
+}

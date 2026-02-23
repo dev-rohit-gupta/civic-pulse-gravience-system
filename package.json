@@ -1,0 +1,28 @@
+{
+  "name": "civic-pulse-gravience-system",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "dev:server" : "node --watch server.js",
+    "dev:client" : "npm run dev --workspace=@civic-pulse/client",
+    "dev" : "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "build:client" : "npm run build --workspace=@civic-pulse/client"
+    
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dev-rohit-gupta/civic-pulse-gravience-system.git"
+  },
+  "keywords": ["civic", "pulse", "gravience", "system"],
+  "workspaces" : [
+    "apps/*",
+    "packages/*"
+  ],
+  "author": "team skoiv",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/dev-rohit-gupta/civic-pulse-gravience-system/issues"
+  },
+  "homepage": "https://github.com/dev-rohit-gupta/civic-pulse-gravience-system#readme"
+}
