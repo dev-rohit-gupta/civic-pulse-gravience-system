@@ -1,6 +1,4 @@
-// import 'bootstrap/dist/css/bootstrap.css';
-import { Suspense } from "react";
-import { Loader } from "../components/loader/loader";
+import 'bootstrap/dist/css/bootstrap.css';
 import "./App.css";
 
 function App() {
