@@ -1,6 +1,6 @@
 import { GoogleGenAI, GenerateContentConfig } from "@google/genai";
-import { EngineInput } from "@resume-buddy/schemas";
-import { mapInputsToContents } from "@resume-buddy/utils";
+import { EngineInput } from "@civic-pulse/schemas";
+import { mapInputsToContents } from "@civic-pulse/utils";
 interface RunEngineParams {
   ai: InstanceType<typeof GoogleGenAI>;
   inputs: EngineInput[];

@@ -5,7 +5,7 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "build": "pnpm exec tsc"
+    "build": "npx tsc"
   },
   "dependencies": {
     "@civic-pulse/schemas": "1.0.0"

@@ -1,0 +1,136 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  NODE_VERSION: '22.16.0'
+
+jobs:
+  # Code Quality Checks
+  quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linting
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Type checking
+        run: npm run type-check
+
+  # Security Audit
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Run security audit
+        run: npm audit --audit-level=moderate
+        continue-on-error: true
+
+  # Build Application
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [quality]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build:prod
+        env:
+          NODE_ENV: production
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            apps/client/dist
+            apps/server/dist
+            packages/*/dist
+          retention-days: 7
+
+  # Docker Build (optional)
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push Server
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          target: server
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/civic-pulse-server:latest
+            ${{ secrets.DOCKER_USERNAME }}/civic-pulse-server:${{ github.sha }}
+          cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/civic-pulse-server:buildcache
+          cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/civic-pulse-server:buildcache,mode=max
+
+      - name: Build and push Client
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          target: client
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/civic-pulse-client:latest
+            ${{ secrets.DOCKER_USERNAME }}/civic-pulse-client:${{ github.sha }}
+          cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/civic-pulse-client:buildcache
+          cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/civic-pulse-client:buildcache,mode=max

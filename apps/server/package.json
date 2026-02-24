@@ -4,7 +4,14 @@
   "description": "This is the server package for the Civic Pulse application. It handles all backend operations, including API endpoints, database interactions, and authentication.",
   "main": "index.js",
   "scripts": {
-    "dev:server": "node --watch index.js"
+    "dev": "node --watch index.js",
+    "dev:server": "node --watch index.js",
+    "build": "npx tsc",
+    "start": "node dist/index.js",
+    "start:prod": "NODE_ENV=production node dist/index.js",
+    "lint": "eslint src --ext .ts",
+    "type-check": "npx tsc --noEmit",
+    "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.972.0",
