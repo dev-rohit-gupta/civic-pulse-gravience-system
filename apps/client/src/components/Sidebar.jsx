@@ -11,8 +11,7 @@ const Sidebar = () => {
     { icon: BarChart3, label: 'Dashboard', path: '/dashboard' ,roles : ['department', 'citizen' , 'operator', 'admin']},
     { icon: Users, label: 'Operators', path: '/operators' ,roles : ['department', 'admin']},
     { icon: ClipboardList, label: 'Complaints', path: '/complaints' ,roles : ['department', 'citizen' , 'operator', 'admin']},
-    { icon: Activity, label: 'Activity Log', path: '/activity' ,roles : [ 'admin']},
-    { icon: FileText, label: 'CivicPulse Portal', path: '/civic-pulse-portal' ,roles : ['department', 'citizen' , 'operator', 'admin']},
+    { icon: Activity, label: 'Activity Log', path: '/activity' ,roles : [ 'admin']},  
     { icon: User, label: 'Profile', path: '/profile' ,roles : ['department', 'citizen' , 'operator', 'admin']}
   ];
   return (
@@ -29,7 +28,10 @@ const Sidebar = () => {
       {sidebarOpen && (
         <div className="px-6 py-4 border-b border-gray-200">
           <p className="text-xs text-gray-500">Logged in as</p>
-          <p className="font-semibold text-gray-900 text-sm mt-1">Department Admin</p>
+          { role === 'department' && <p className="font-semibold text-gray-900 text-sm mt-1">Department Admin</p>}
+          { role === 'citizen' && <p className="font-semibold text-gray-900 text-sm mt-1">Citizen</p>}
+          { role === 'operator' && <p className="font-semibold text-gray-900 text-sm mt-1">Operator</p>}
+          { role === 'admin' && <p className="font-semibold text-gray-900 text-sm mt-1">System Admin</p>}
         </div>
       )}
 
