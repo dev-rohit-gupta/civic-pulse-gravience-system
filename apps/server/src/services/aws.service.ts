@@ -15,13 +15,13 @@ function createS3Client() {
   });
 }
 
-export async function uploadToS3(file: Express.Multer.File, key: string) {
+export async function uploadToS3(file: Buffer, key: string) {
   const s3 = createS3Client();
   const command = new PutObjectCommand({
     Bucket: process.env.AWS_S3_BUCKET_NAME,
     Key: key,
-    Body: file.buffer,
-    ContentType: file.mimetype,
+    Body: file,
+    ContentType: "image/jpeg", // Default content type for uploaded images
   });
 
   return await s3.send(command);

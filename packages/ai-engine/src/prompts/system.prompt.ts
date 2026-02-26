@@ -11,6 +11,7 @@ PRIORITY (0-1): 0.9-1.0=critical safety; 0.7-0.8=urgent infrastructure; 0.5-0.6=
 
 FORMAT: {"isSpam":boolean,"analysis":{"category":"string","priorityScore":number,"issue":"string"}}
 
+
 EXAMPLES:
 "Huge pothole on Main St near school causing accidents" → {"isSpam":false,"analysis":{"category":"Road","priorityScore":0.85,"issue":"pothole"}}
 "test test 123" → {"isSpam":true,"analysis":{"category":"Other","priorityScore":0.0,"issue":"test"}}`

@@ -30,12 +30,6 @@ const complaintSchema = new mongoose.Schema<Complaint>(
         required: true,
       },
     },
-    area: {
-      name: {
-        type: String,
-        required: true,
-      },
-    },
     category: {
       type: String,
       enum: ["Road", "Water", "Electricity", "Garbage", "Other"],
@@ -45,6 +39,7 @@ const complaintSchema = new mongoose.Schema<Complaint>(
       type: [mongoose.Schema.Types.ObjectId],
       ref: "User",
       default: [],
+      required: true,
     },
     semanticVector: {
       type: [Number],
@@ -68,9 +63,8 @@ const complaintSchema = new mongoose.Schema<Complaint>(
       type: String,
       enum: [
         "pending",
-        "under_review",
         "assigned",
-        "in_progress",
+        "under_progress",
         "resolved",
         "closed",
         "rejected",

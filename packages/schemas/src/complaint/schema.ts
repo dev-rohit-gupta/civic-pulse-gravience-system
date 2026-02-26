@@ -11,9 +11,6 @@ export const ComplaintSchema = z.object({
   location: z.object({
     coordinates: z.tuple([z.number(), z.number()]), // [lng, lat]
   }),
-  area: z.object({
-    name: z.string().max(100),
-  }),
   category: z.enum(["Road", "Water", "Electricity", "Garbage", "Other"]),
   supporters: z.array(z.string()).nullable(),
   semanticVector: z.array(z.number()).nullable(),
@@ -21,7 +18,14 @@ export const ComplaintSchema = z.object({
   department: DepartmentSchema,
   contractor: UserSchema.nullable(),
   status: z
-    .enum(["pending", "under_review", "assigned", "in_progress", "resolved", "closed", "rejected"])
+    .enum([
+        "pending",
+        "assigned",
+        "under_progress",
+        "resolved",
+        "closed",
+        "rejected",
+      ])
     .default("pending"),
   priorityScore: z.number().default(0),
   resolvedAt: z.date().nullable(),
@@ -32,15 +36,9 @@ export const ComplaintSchema = z.object({
 export type Complaint = z.infer<typeof ComplaintSchema>;
 
 export interface newComplaint {
-  citizen: string;
   title: string;
   description: string;
-  image: string;
   location: {
     coordinates: [number, number];
   };
-  area: {
-    name: string;
-  };
-  category: "Road" | "Water" | "Electricity" | "Garbage" | "Other";
 }
