@@ -22,7 +22,7 @@ type results = {
     };
   };
 
-export async function validateAndAnalyzeComplaint(complaint: newComplaint, image: ArrayBuffer) : Promise<results> {
+export async function validateAndAnalyzeComplaint(complaint: newComplaint, image: Buffer) : Promise<results> {
   const inputs: EngineInput[] = [
     { type: "text", value: complaint.title },
     { type: "text", value: complaint.description },

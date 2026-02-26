@@ -14,6 +14,7 @@
     "@civic-pulse/utils": "1.0.0"
   },
   "devDependencies": {
-    "typescript": "^5.5.0"
+    "typescript": "^5.5.0",
+    "@types/node": "^20.14.0"
   }
 }

@@ -9,7 +9,7 @@ import type { User } from "@civic-pulse/schemas";
 // TextEncoder is needed for jose SignJWT to encode the secret key
 const encoder = new TextEncoder();
 
-export interface IUser extends Document, Omit<User, "id"> {
+export interface IUser extends User , Omit<Document, "id"> {
   isPasswordCorrect(password: string): Promise<boolean>;
   generateAccessToken(): Promise<string>;
 }

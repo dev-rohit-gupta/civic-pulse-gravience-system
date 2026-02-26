@@ -1,7 +1,7 @@
 import { z } from "zod";
 /* ---------- helpers ---------- */
 
-const BufferSchema = z.instanceof(ArrayBuffer);
+const BufferSchema = z.instanceof(Buffer);
 
 /* ---------- EngineInput schemas ---------- */
 

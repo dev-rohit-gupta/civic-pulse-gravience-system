@@ -10,3 +10,4 @@ export * from "./dateCompare.js";
 export * from "./generate.key.utils.js";
 export * from "./genDeptId.js";
 export * from "./genUserId.js";
+export * from "./canonicalHash.js";
