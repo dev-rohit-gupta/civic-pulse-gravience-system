@@ -5,4 +5,6 @@ export * from "./ai/engineInput.schema.js";
 export * from "./util.schemas.js";
 export * from "./department/schema.js";
 export * from "./complaint/schema.js";
-export * from "./activityLog/activity.schema.js"
+export * from "./activityLog/activity.schema.js";
+export * from "./category/schema.js";
+export * from "./role/schema.js";
