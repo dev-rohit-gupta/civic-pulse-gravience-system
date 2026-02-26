@@ -1,8 +1,6 @@
 import { z } from "zod";
-
 /* ---------- helpers ---------- */
 
-// Buffer runtime me class hota hai (Node.js)
 const BufferSchema = z.instanceof(Buffer);
 
 /* ---------- EngineInput schemas ---------- */

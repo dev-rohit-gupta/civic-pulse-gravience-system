@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "dev:server": "node --watch server.js",
+    "dev:server": "npm run dev --workspace=@civic-pulse/server",
     "dev:client": "npm run dev --workspace=@civic-pulse/client",
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "build:client": "npm run build --workspace=@civic-pulse/client",
@@ -49,7 +49,8 @@
   "devDependencies": {
     "prettier": "^3.3.3",
     "turbo": "^2.7.4",
-    "typescript": "^5.5.0"
+    "typescript": "^5.5.0",
+    "@types/node": "^20.14.0"
   },
   "packageManager": "npm@11.10.0",
   "homepage": "https://github.com/dev-rohit-gupta/civic-pulse-gravience-system#readme"

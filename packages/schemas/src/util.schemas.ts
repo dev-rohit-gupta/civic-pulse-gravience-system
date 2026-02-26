@@ -5,14 +5,14 @@ import { z } from "zod";
  * - "" → undefined
  * - null → undefined
  */
-export const string = z.string().trim().nullable().catch(null);
+export const stringSchema = z.string().trim().nullable().catch(null);
 
 /**
  * AI-friendly optional URL
  * - null / "" → undefined
  * - allows missing protocol (adds https later if needed)
  */
-export const url = z
+export const urlSchema = z
   .string()
   .trim()
   .nullable()
@@ -25,6 +25,11 @@ export const url = z
 export const safeArray = <T extends z.ZodTypeAny>(schema: T) =>
   z
     .array(schema)
-    .optional()
     .nullable()
     .transform((v) => v ?? undefined);
+/**
+ * Schema for validating and parsing email data.
+ */
+export const emailSchema = z
+  .string()
+  .refine((val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val), { message: "Invalid email" });

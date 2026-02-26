@@ -1,5 +1,6 @@
 export * from "./asyncHandler.js";
 export * from "./apiResponse.js";
+export * from "./apiError.js";
 export * from "./errors.js";
 export * from "./ai/mapInputsToContents.js";
 export * from "./ai/safeParseAIJson.js";
@@ -7,3 +8,6 @@ export * from "./auth/verifyToken.js";
 export * from "./deepMerge.js";
 export * from "./dateCompare.js";
 export * from "./generate.key.utils.js";
+export * from "./genDeptId.js";
+export * from "./genUserId.js";
+export * from "./canonicalHash.js";
