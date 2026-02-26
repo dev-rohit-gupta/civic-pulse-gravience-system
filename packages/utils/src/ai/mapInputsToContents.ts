@@ -21,7 +21,7 @@ export function mapInputsToContents(inputs: EngineInput[]) {
       return {
         inlineData: {
           mimeType: input.mimeType,
-          data: input.buffer.toString("base64"),
+          data: Buffer.from(input.buffer).toString("base64"),
         },
       };
     }
