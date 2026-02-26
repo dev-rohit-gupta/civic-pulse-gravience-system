@@ -3,6 +3,14 @@ import { urlSchema } from "../util.schemas.js";
 import { UserSchema } from "../user/user.schema.js";
 import { DepartmentSchema } from "../department/schema.js";
 
+const EscalationHistorySchema = z.object({
+  escalatedBy: z.string(), // User ID
+  escalatedAt: z.date(),
+  reason: z.string(),
+  fromRole: z.enum(["operator", "department", "admin"]),
+  toRole: z.enum(["operator", "department", "admin"]),
+});
+
 export const ComplaintSchema = z.object({
   citizen: UserSchema,
   title: z.string().min(5).max(200),
@@ -30,6 +38,9 @@ export const ComplaintSchema = z.object({
   priorityScore: z.number().default(0),
   resolvedAt: z.date().nullable(),
   closedAt: z.date().nullable(),
+  escalationLevel: z.number().default(0),
+  escalationHistory: z.array(EscalationHistorySchema).default([]),
+  currentHandler: z.string().nullable(),
   createdAt: z.date().default(() => new Date()),
 });
 

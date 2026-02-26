@@ -83,6 +83,27 @@ const complaintSchema = new mongoose.Schema<Complaint>(
       type: Date,
       default: null,
     },
+    escalationLevel: {
+      type: Number,
+      default: 0,
+    },
+    escalationHistory: {
+      type: [
+        {
+          escalatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+          escalatedAt: { type: Date },
+          reason: { type: String },
+          fromRole: { type: String, enum: ["operator", "department", "admin"] },
+          toRole: { type: String, enum: ["operator", "department", "admin"] },
+        },
+      ],
+      default: [],
+    },
+    currentHandler: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
   },
   { timestamps: true }
 );

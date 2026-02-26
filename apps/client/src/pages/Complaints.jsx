@@ -1,14 +1,18 @@
 import React, { useState } from 'react';
-import { Plus, Search, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, RefreshCw, ArrowUp } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { getPriorityBadge, getStatusBadge } from '../utils/helpers';
 import AddComplaintModal from '../components/modals/AddComplaintModal';
 import EditComplaintModal from '../components/modals/EditComplaintModal';
+import UpdateComplaintStatusModal from '../components/modals/UpdateComplaintStatusModal';
+import EscalateComplaintModal from '../components/modals/EscalateComplaintModal';
 
 const Complaints = () => {
-  const { getFilteredComplaints, handleDeleteComplaint, activityLog } = useApp();
+  const { getFilteredComplaints, handleDeleteComplaint, activityLog, role } = useApp();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [showEscalateModal, setShowEscalateModal] = useState(false);
   const [selectedComplaint, setSelectedComplaint] = useState(null);
   const [searchComplaint, setSearchComplaint] = useState('');
   const [filterPriority, setFilterPriority] = useState('All');
@@ -106,28 +110,66 @@ const Complaints = () => {
                   </span>
                 </td>
                 <td className="px-6 py-4 text-gray-700">{complaint.assignedTo || 'Unassigned'}</td>
-                <td className="px-6 py-4 flex gap-2">
-                  
-                 {!complaint.assignedTo ? <button
-                    onClick={() => {
-                      setSelectedComplaint(complaint);
-                      setShowEditModal(true);
-                    }}
-                    className="p-2 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition-colors"
-                  >
-                    Assign
-                  </button>
-                  :
-                  <button
-                    onClick={() => {
-                      if (window.confirm('Are you sure you want to delete this complaint?')) {
-                        handleDeleteComplaint(complaint.id);
-                      }
-                    }}
-                    className="p-2 bg-red-100 text-red-600 rounded hover:bg-red-200 transition-colors"
-                  >
-                    Re-assign
-                  </button>}
+                <td className="px-6 py-4">
+                  <div className="flex gap-2">
+                    {!complaint.assignedTo ? (
+                      <button
+                        onClick={() => {
+                          setSelectedComplaint(complaint);
+                          setShowEditModal(true);
+                        }}
+                        className="p-2 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition-colors"
+                        title="Assign operator"
+                      >
+                        Assign
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          if (window.confirm('Are you sure you want to re-assign this complaint?')) {
+                            setSelectedComplaint(complaint);
+                            setShowEditModal(true);
+                          }
+                        }}
+                        className="p-2 bg-yellow-100 text-yellow-600 rounded hover:bg-yellow-200 transition-colors"
+                        title="Re-assign operator"
+                      >
+                        Re-assign
+                      </button>
+                    )}
+                    
+                    {/* Department can override operator's status */}
+                    {(role === 'department' || role === 'operator' || role === 'admin') && (
+                      <button
+                        onClick={() => {
+                          setSelectedComplaint(complaint);
+                          setShowStatusModal(true);
+                        }}
+                        className="p-2 bg-green-100 text-green-600 rounded hover:bg-green-200 transition-colors flex items-center gap-1"
+                        title={role === 'department' ? 'Override status (Department)' : 'Change status'}
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                        Status
+                      </button>
+                    )}
+
+                    {/* Escalate complaint to higher level */}
+                    {(role === 'operator' || role === 'department') && complaint.assignedTo && (
+                      <button
+                        onClick={() => {
+                          setSelectedComplaint(complaint);
+                          setShowEscalateModal(true);
+                        }}
+                        className="p-2 bg-orange-100 text-orange-600 rounded hover:bg-orange-200 transition-colors flex items-center gap-1"
+                        title={`Escalate to ${role === 'operator' ? 'Department' : 'Admin'}`}
+                      >
+                        <ArrowUp className="w-4 h-4" />
+                        {complaint.escalationLevel > 0 && (
+                          <span className="text-xs font-bold">{complaint.escalationLevel}</span>
+                        )}
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
@@ -140,6 +182,24 @@ const Complaints = () => {
         <EditComplaintModal 
           complaint={selectedComplaint} 
           onClose={() => setShowEditModal(false)} 
+        />
+      )}
+      {showStatusModal && selectedComplaint && (
+        <UpdateComplaintStatusModal
+          complaint={selectedComplaint}
+          onClose={() => {
+            setShowStatusModal(false);
+            setSelectedComplaint(null);
+          }}
+        />
+      )}
+      {showEscalateModal && selectedComplaint && (
+        <EscalateComplaintModal
+          complaint={selectedComplaint}
+          onClose={() => {
+            setShowEscalateModal(false);
+            setSelectedComplaint(null);
+          }}
         />
       )}
     </div>

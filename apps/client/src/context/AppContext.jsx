@@ -18,11 +18,11 @@ export const AppProvider = ({ children }) => {
   const [role, setRole] = useState("citizen")
   // STATE MANAGEMENT FOR ALL DATA
   const [complaints, setComplaints] = useState([
-    { id: 'CMP-1001', description: 'Pothole on Main Street', category: 'Road', priority: 'High', status: 'Pending', citizen: 'John Doe', assignedTo: null, dueDate: '2026-02-26', createdDate: '2026-02-24' },
-    { id: 'CMP-1002', description: 'Power outage in Phase 2', category: 'Electrical', priority: 'Medium', status: 'Working', citizen: 'Jane Smith', assignedTo: 'Vikram Joshi', dueDate: '2026-02-27', createdDate: '2026-02-23' },
-    { id: 'CMP-1003', description: 'Water pipeline burst', category: 'Water', priority: 'High', status: 'Pending', citizen: 'Ahmed Hassan', assignedTo: 'Sneha Kulkarni', dueDate: '2026-02-25', createdDate: '2026-02-22' },
-    { id: 'CMP-1004', description: 'Garbage collection overdue', category: 'Sanitation', priority: 'Low', status: 'Resolved', citizen: 'Maria Garcia', assignedTo: 'Priya Sharma', dueDate: '2026-02-28', createdDate: '2026-02-21' },
-    { id: 'CMP-1005', description: 'Street light broken', category: 'Road', priority: 'Medium', status: 'Working', citizen: 'David Lee', assignedTo: 'Raj Patil', dueDate: '2026-02-29', createdDate: '2026-02-20' }
+    { id: 'CMP-1001', description: 'Pothole on Main Street', category: 'Road', priority: 'High', status: 'Pending', citizen: 'John Doe', assignedTo: null, dueDate: '2026-02-26', createdDate: '2026-02-24', escalationLevel: 0 },
+    { id: 'CMP-1002', description: 'Power outage in Phase 2', category: 'Electrical', priority: 'Medium', status: 'Working', citizen: 'Jane Smith', assignedTo: 'Vikram Joshi', dueDate: '2026-02-27', createdDate: '2026-02-23', escalationLevel: 0 },
+    { id: 'CMP-1003', description: 'Water pipeline burst', category: 'Water', priority: 'High', status: 'Pending', citizen: 'Ahmed Hassan', assignedTo: 'Sneha Kulkarni', dueDate: '2026-02-25', createdDate: '2026-02-22', escalationLevel: 1 },
+    { id: 'CMP-1004', description: 'Garbage collection overdue', category: 'Sanitation', priority: 'Low', status: 'Resolved', citizen: 'Maria Garcia', assignedTo: 'Priya Sharma', dueDate: '2026-02-28', createdDate: '2026-02-21', escalationLevel: 0 },
+    { id: 'CMP-1005', description: 'Street light broken', category: 'Road', priority: 'Medium', status: 'Working', citizen: 'David Lee', assignedTo: 'Raj Patil', dueDate: '2026-02-29', createdDate: '2026-02-20', escalationLevel: 0 }
   ]);
 
   const [operators, setOperators] = useState([
@@ -75,6 +75,45 @@ export const AppProvider = ({ children }) => {
     setComplaints(complaints.filter(c => c.id !== id));
     addActivity('Complaint Deleted', `${id}: Complaint removed from system`, 'Admin');
     showNotification('Complaint deleted successfully!');
+  };
+
+  const handleEscalateComplaint = async (complaintId, reason) => {
+    // Find the complaint
+    const complaint = complaints.find(c => c.id === complaintId);
+    if (!complaint) {
+      showNotification('Complaint not found!', 'error');
+      return false;
+    }
+
+    // Determine escalation level based on role
+    let escalatedTo = '';
+    let newEscalationLevel = (complaint.escalationLevel || 0) + 1;
+    
+    if (role === 'operator') {
+      escalatedTo = 'Department';
+    } else if (role === 'department') {
+      escalatedTo = 'Admin';
+    } else {
+      showNotification('Cannot escalate from this role!', 'error');
+      return false;
+    }
+
+    // Update complaint with escalation
+    const updatedComplaint = {
+      ...complaint,
+      escalationLevel: newEscalationLevel,
+      status: 'assigned', // Reset to assigned when escalated
+      assignedTo: null, // Clear assignment until reassigned at new level
+    };
+
+    setComplaints(complaints.map(c => c.id === complaintId ? updatedComplaint : c));
+    addActivity(
+      'Complaint Escalated',
+      `${complaintId}: Escalated to ${escalatedTo} - Reason: ${reason.substring(0, 50)}...`,
+      role.charAt(0).toUpperCase() + role.slice(1)
+    );
+    showNotification(`Complaint escalated to ${escalatedTo} successfully!`);
+    return true;
   };
 
   // OPERATOR FUNCTIONS
@@ -173,6 +212,7 @@ export const AppProvider = ({ children }) => {
     handleAddComplaint,
     handleUpdateComplaint,
     handleDeleteComplaint,
+    handleEscalateComplaint,
     handleAddOperator,
     handleUpdateOperator,
     handleDeleteOperator,
