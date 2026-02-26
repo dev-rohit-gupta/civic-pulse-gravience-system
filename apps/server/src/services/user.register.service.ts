@@ -18,8 +18,8 @@ export async function registerUserService(userData: userDataT, userId: string, r
       case "department":
         newUser = await registerDepartmentUser(userData);
         break;
-      case "contractor":
-        newUser = await registerContractor(userData, userId);
+      case "operator":
+        newUser = await registerOperator(userData, userId);
         break;
       case "citizen":
         newUser = await registerCitizen(userData);
@@ -49,7 +49,7 @@ async function registerDepartmentUser(userData: userDataT) {
   await newDepartmentUser.save();
   return newDepartmentUser;
 }
-async function registerContractor(userData : userDataT, userId : string) {
+async function registerOperator(userData : userDataT, userId : string) {
     const existingUser = await UserModel.exists({ email: userData.email, phone: userData.phone });
     if (existingUser) {
       throw new Error("User with this email already exists");
@@ -60,9 +60,9 @@ async function registerContractor(userData : userDataT, userId : string) {
       throw new Error("Department not found");
     }
 
-    const newContractor = new UserModel({ ...userData, department: department._id, role: "contractor" });
-    await newContractor.save();
-    return newContractor;
+    const newOperator = new UserModel({ ...userData, department: department._id, role: "operator" });
+    await newOperator.save();
+    return newOperator;
 }
 
 async function registerCitizen(userData : userDataT) {

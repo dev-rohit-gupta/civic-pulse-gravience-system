@@ -4,7 +4,7 @@ import { AppProvider } from './context/AppContext';
 import MainLayout from './layouts/MainLayout';
 import PublicLayout from './layouts/PublicLayout';
 import Dashboard from './pages/Dashboard';
-import Contractors from './pages/Contractors';
+import Operators from './pages/Operators';
 import Complaints from './pages/Complaints';
 import Activity from './pages/Activity';
 import Reports from './pages/Reports';
@@ -25,7 +25,7 @@ const CivicPulseApp = () => {
         {/* Main Layout Routes */}
         <Route element={<MainLayout />}>
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/contractors" element={<Contractors />} />
+          <Route path="/operators" element={<Operators />} />
           <Route path="/complaints" element={<Complaints />} />
           <Route path="/activity" element={<Activity />} />
           <Route path="/reports" element={<Reports />} />

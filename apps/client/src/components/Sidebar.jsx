@@ -8,12 +8,12 @@ const Sidebar = () => {
   const location = useLocation();
   
   const navItems = [
-    { icon: BarChart3, label: 'Dashboard', path: '/dashboard' ,roles : ['department', 'citizen' , 'contractor', 'admin']},
-    { icon: Users, label: 'Contractors', path: '/contractors' ,roles : ['department', 'admin']},
-    { icon: ClipboardList, label: 'Complaints', path: '/complaints' ,roles : ['department', 'citizen' , 'contractor', 'admin']},
+    { icon: BarChart3, label: 'Dashboard', path: '/dashboard' ,roles : ['department', 'citizen' , 'operator', 'admin']},
+    { icon: Users, label: 'Operators', path: '/operators' ,roles : ['department', 'admin']},
+    { icon: ClipboardList, label: 'Complaints', path: '/complaints' ,roles : ['department', 'citizen' , 'operator', 'admin']},
     { icon: Activity, label: 'Activity Log', path: '/activity' ,roles : [ 'admin']},
-    { icon: FileText, label: 'CivicPulse Portal', path: '/civic-pulse-portal' ,roles : ['department', 'citizen' , 'contractor', 'admin']},
-    { icon: User, label: 'Profile', path: '/profile' ,roles : ['department', 'citizen' , 'contractor', 'admin']}
+    { icon: FileText, label: 'CivicPulse Portal', path: '/civic-pulse-portal' ,roles : ['department', 'citizen' , 'operator', 'admin']},
+    { icon: User, label: 'Profile', path: '/profile' ,roles : ['department', 'citizen' , 'operator', 'admin']}
   ];
   return (
     <div className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-white border-r border-gray-200 transition-all duration-300 flex flex-col`}>

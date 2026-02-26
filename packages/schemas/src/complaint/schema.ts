@@ -16,7 +16,7 @@ export const ComplaintSchema = z.object({
   semanticVector: z.array(z.number()).nullable(),
   canonicalHash: z.string().nullable(),
   department: DepartmentSchema,
-  contractor: UserSchema.nullable(),
+  operator: UserSchema.nullable(),
   status: z
     .enum([
         "pending",

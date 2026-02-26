@@ -19,7 +19,7 @@ const UserSchema = new mongoose.Schema<IUser>(
     id: { type: String, required: true, unique: true },
     fullname: { type: String, required: true },
     email: { type: String, required: true, unique: true },
-    role: { type: String, enum: ["citizen", "contractor", "department", "admin"], required: true },
+    role: { type: String, enum: ["citizen", "operator", "department", "admin"], required: true },
     password: { type: String, required: true },
     aadhaar: { type: String, required: true, unique: true },
     phone: { type: String, required: true },

@@ -3,7 +3,7 @@ import { Save, XCircle } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 const AddComplaintModal = ({ onClose }) => {
-  const { handleAddComplaint, contractors } = useApp();
+  const { handleAddComplaint, operators } = useApp();
   const [complaintForm, setComplaintForm] = useState({
     description: '', 
     priority: 'Medium', 
@@ -79,8 +79,8 @@ const AddComplaintModal = ({ onClose }) => {
                 onChange={(e) => setComplaintForm({ ...complaintForm, assignedTo: e.target.value })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="">Select contractor</option>
-                {contractors.map(c => (
+                <option value="">Select operator</option>
+                {operators.map(c => (
                   <option key={c.id} value={c.name}>{c.name}</option>
                 ))}
               </select>

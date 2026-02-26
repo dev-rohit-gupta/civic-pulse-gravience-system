@@ -14,7 +14,7 @@ export const AppProvider = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [notification, setNotification] = useState(null);
 
-  // role can be 'department', 'citizen', 'contractor', 'admin'
+  // role can be 'department', 'citizen', 'operator', 'admin'
   const [role, setRole] = useState("citizen")
   // STATE MANAGEMENT FOR ALL DATA
   const [complaints, setComplaints] = useState([
@@ -25,7 +25,7 @@ export const AppProvider = ({ children }) => {
     { id: 'CMP-1005', description: 'Street light broken', category: 'Road', priority: 'Medium', status: 'Working', citizen: 'David Lee', assignedTo: 'Raj Patil', dueDate: '2026-02-29', createdDate: '2026-02-20' }
   ]);
 
-  const [contractors, setContractors] = useState([
+  const [operators, setOperators] = useState([
     { id: 1, name: 'Raj Patil', department: 'Roads', status: 'Active', rating: 4.8, complaints: 12, city: 'Mumbai', phone: '9876543210', email: 'raj@civicpulse.in' },
     { id: 2, name: 'Sneha Kulkarni', department: 'Water', status: 'Active', rating: 4.6, complaints: 8, city: 'Pune', phone: '9876543211', email: 'sneha@civicpulse.in' },
     { id: 3, name: 'Vikram Joshi', department: 'Electrical', status: 'Active', rating: 4.9, complaints: 15, city: 'Bangalore', phone: '9876543212', email: 'vikram@civicpulse.in' },
@@ -38,7 +38,7 @@ export const AppProvider = ({ children }) => {
     { id: 2, timestamp: '2026-02-24 14:45', action: 'AI Validation', details: 'CMP-1001: Passed spam detection', user: 'AI Engine' },
     { id: 3, timestamp: '2026-02-24 15:00', action: 'Priority Assigned', details: 'CMP-1001: High Priority (Score: 85)', user: 'System' },
     { id: 4, timestamp: '2026-02-24 15:15', action: 'Department Assigned', details: 'CMP-1001: Assigned to Roads Dept', user: 'Admin' },
-    { id: 5, timestamp: '2026-02-24 16:30', action: 'Contractor Assigned', details: 'CMP-1001: Assigned to Raj Patil', user: 'Department Admin' }
+    { id: 5, timestamp: '2026-02-24 16:30', action: 'Operator Assigned', details: 'CMP-1001: Assigned to Raj Patil', user: 'Department Admin' }
   ]);
 
   // SHOW NOTIFICATION
@@ -77,36 +77,36 @@ export const AppProvider = ({ children }) => {
     showNotification('Complaint deleted successfully!');
   };
 
-  // CONTRACTOR FUNCTIONS
-  const handleAddContractor = (contractorForm) => {
-    if (!contractorForm.name || !contractorForm.department || !contractorForm.email) {
+  // OPERATOR FUNCTIONS
+  const handleAddOperator = (operatorForm) => {
+    if (!operatorForm.name || !operatorForm.department || !operatorForm.email) {
       showNotification('Please fill all required fields', 'error');
       return false;
     }
-    const newContractor = {
-      id: Math.max(...contractors.map(c => c.id)) + 1,
-      ...contractorForm,
-      rating: parseFloat(contractorForm.rating) || 4.0,
+    const newOperator = {
+      id: Math.max(...operators.map(c => c.id)) + 1,
+      ...operatorForm,
+      rating: parseFloat(operatorForm.rating) || 4.0,
       complaints: 0
     };
-    setContractors([...contractors, newContractor]);
-    addActivity('Contractor Registered', `Registered new contractor ${newContractor.name}`, 'Admin');
-    showNotification('Contractor added successfully!');
+    setOperators([...operators, newOperator]);
+    addActivity('Operator Registered', `Registered new operator ${newOperator.name}`, 'Admin');
+    showNotification('Operator added successfully!');
     return true;
   };
 
-  const handleUpdateContractor = (updatedContractor) => {
-    setContractors(contractors.map(c => c.id === updatedContractor.id ? { ...updatedContractor } : c));
-    addActivity('Contractor Updated', `Updated contractor ${updatedContractor.name} profile`, 'Admin');
-    showNotification('Contractor updated successfully!');
+  const handleUpdateOperator = (updatedOperator) => {
+    setOperators(operators.map(c => c.id === updatedOperator.id ? { ...updatedOperator } : c));
+    addActivity('Operator Updated', `Updated operator ${updatedOperator.name} profile`, 'Admin');
+    showNotification('Operator updated successfully!');
     return true;
   };
 
-  const handleDeleteContractor = (id) => {
-    const contractor = contractors.find(c => c.id === id);
-    setContractors(contractors.filter(c => c.id !== id));
-    addActivity('Contractor Removed', `Removed contractor ${contractor.name} from system`, 'Admin');
-    showNotification('Contractor deleted successfully!');
+  const handleDeleteOperator = (id) => {
+    const operator = operators.find(c => c.id === id);
+    setOperators(operators.filter(c => c.id !== id));
+    addActivity('Operator Removed', `Removed operator ${operator.name} from system`, 'Admin');
+    showNotification('Operator deleted successfully!');
   };
 
   // ACTIVITY LOG FUNCTION
@@ -142,18 +142,18 @@ export const AppProvider = ({ children }) => {
     return filtered;
   };
 
-  const getFilteredContractors = (searchContractor) => {
-    return contractors.filter(c => 
-      c.name.toLowerCase().includes(searchContractor.toLowerCase()) ||
-      c.department.toLowerCase().includes(searchContractor.toLowerCase()) ||
-      c.city.toLowerCase().includes(searchContractor.toLowerCase())
+  const getFilteredOperators = (searchOperator) => {
+    return operators.filter(c => 
+      c.name.toLowerCase().includes(searchOperator.toLowerCase()) ||
+      c.department.toLowerCase().includes(searchOperator.toLowerCase()) ||
+      c.city.toLowerCase().includes(searchOperator.toLowerCase())
     );
   };
 
   // DASHBOARD STATS
   const getDashboardStats = () => ({
-    totalContractors: contractors.length,
-    activeContractors: contractors.filter(c => c.status === 'Active').length,
+    totalOperators: operators.length,
+    activeOperators: operators.filter(c => c.status === 'Active').length,
     complaintsResolved: complaints.filter(c => c.status === 'Resolved').length,
     complaintsPending: complaints.filter(c => c.status === 'Pending').length,
     complaintsWorking: complaints.filter(c => c.status === 'Working').length,
@@ -168,16 +168,16 @@ export const AppProvider = ({ children }) => {
     showNotification,
     complaints,
     role,
-    contractors,
+    operators,
     activityLog,
     handleAddComplaint,
     handleUpdateComplaint,
     handleDeleteComplaint,
-    handleAddContractor,
-    handleUpdateContractor,
-    handleDeleteContractor,
+    handleAddOperator,
+    handleUpdateOperator,
+    handleDeleteOperator,
     getFilteredComplaints,
-    getFilteredContractors,
+    getFilteredOperators,
     getDashboardStats
   };
 

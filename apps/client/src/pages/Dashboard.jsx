@@ -5,23 +5,23 @@ import { getPriorityBadge, getStatusBadge } from '../utils/helpers';
 
 const Dashboard = () => {
 
-  const { complaints, activityLog, contractors, getDashboardStats , role} = useApp();
+  const { complaints, activityLog, operators, getDashboardStats , role} = useApp();
   const stats = getDashboardStats();
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-4xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-500 mt-2">Overview of complaints and contractor activity</p>
+        <p className="text-gray-500 mt-2">Overview of complaints and operator activity</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {role === "admin" && <div className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-gray-600 text-sm">Total Contractors</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">{stats.totalContractors}</p>
-              <p className="text-green-600 text-xs mt-2">✓ {stats.activeContractors} active</p>
+              <p className="text-gray-600 text-sm">Total Operators</p>
+              <p className="text-3xl font-bold text-gray-900 mt-2">{stats.totalOperators}</p>
+              <p className="text-green-600 text-xs mt-2">✓ {stats.activeOperators} active</p>
             </div>
             <Users className="w-10 h-10 text-blue-500 opacity-20" />
           </div>

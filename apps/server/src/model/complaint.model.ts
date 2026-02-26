@@ -54,7 +54,7 @@ const complaintSchema = new mongoose.Schema<Complaint>(
       ref: "Department",
       required: true,
     },
-    contractor: {
+    operator: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       default: null,
