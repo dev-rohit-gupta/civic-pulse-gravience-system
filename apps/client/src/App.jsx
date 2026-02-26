@@ -10,12 +10,14 @@ import Activity from './pages/Activity';
 import Reports from './pages/Reports';
 import Profile from './pages/Profile';
 import CivicPulsePortal from './pages/CivicPulsePortal';
+import Login from './pages/login';
 
 const CivicPulseApp = () => {
   return (
     <AppProvider>
       <Routes>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/login" element={<Login />} />
         
         {/* Public Layout Routes */}
         <Route element={<PublicLayout />}>
