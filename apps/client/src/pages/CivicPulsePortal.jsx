@@ -492,6 +492,8 @@ function RegisterPanel({ addComplaint, addToast }) {
   const [loading, setLoading] = useState(false);
   const [submittedId, setSubmittedId] = useState(null);
   const fileInputRef = useRef(null);
+  const mapRef = useRef(null);
+  const leafletMapRef = useRef(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -515,6 +517,70 @@ function RegisterPanel({ addComplaint, addToast }) {
   const [errors, setErrors] = useState({});
   const [gpsLoading, setGpsLoading] = useState(false);
   const [gpsPermissionDenied, setGpsPermissionDenied] = useState(false);
+
+  // Load Leaflet library
+  useEffect(() => {
+    // Load Leaflet CSS
+    if (!document.getElementById('leaflet-css')) {
+      const link = document.createElement('link');
+      link.id = 'leaflet-css';
+      link.rel = 'stylesheet';
+      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      link.integrity = 'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=';
+      link.crossOrigin = '';
+      document.head.appendChild(link);
+    }
+
+    // Load Leaflet JS
+    if (!window.L && !document.getElementById('leaflet-js')) {
+      const script = document.createElement('script');
+      script.id = 'leaflet-js';
+      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+      script.integrity = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';
+      script.crossOrigin = '';
+      document.head.appendChild(script);
+    }
+  }, []);
+
+  // Initialize Leaflet map when GPS data is available
+  useEffect(() => {
+    if (formData.gps && mapRef.current && window.L) {
+      // Clear existing map if any
+      if (leafletMapRef.current) {
+        leafletMapRef.current.remove();
+      }
+
+      // Small delay to ensure DOM is ready
+      setTimeout(() => {
+        if (!mapRef.current) return;
+
+        const { lat, lng } = formData.gps;
+        
+        // Initialize map
+        const map = window.L.map(mapRef.current).setView([parseFloat(lat), parseFloat(lng)], 15);
+        
+        // Add OpenStreetMap tiles (no API key required)
+        window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors',
+          maxZoom: 19,
+        }).addTo(map);
+        
+        // Add marker
+        const marker = window.L.marker([parseFloat(lat), parseFloat(lng)]).addTo(map);
+        marker.bindPopup(`<b>📍 ${formData.gps.label}</b><br>Lat: ${lat}, Lng: ${lng}`).openPopup();
+        
+        leafletMapRef.current = map;
+      }, 100);
+    }
+
+    // Cleanup
+    return () => {
+      if (leafletMapRef.current) {
+        leafletMapRef.current.remove();
+        leafletMapRef.current = null;
+      }
+    };
+  }, [formData.gps]);
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -604,31 +670,50 @@ function RegisterPanel({ addComplaint, addToast }) {
     }
   };
 
-  const validate = () => {
+  const validateStep = (stepIndex) => {
     const newErrors = {};
     
-    if (!formData.name.trim()) newErrors.name = 'Name is required';
-    if (formData.aadhaar.replace(/\s/g, '').length !== 12) newErrors.aadhaar = 'Valid 12-digit Aadhaar required';
-    if (!/^\d{10}$/.test(formData.mobile)) newErrors.mobile = 'Valid 10-digit mobile required';
-    if (!formData.category) newErrors.category = 'Category is required';
-    if (!formData.subject.trim()) newErrors.subject = 'Subject is required';
-    if (!formData.ward.trim()) newErrors.ward = 'Ward/Area is required';
-    if (formData.description.length < 30) newErrors.description = 'Description must be at least 30 characters';
-    if (!formData.address.trim()) newErrors.address = 'Address is required';
-    if (!formData.city.trim()) newErrors.city = 'City is required';
-    if (!formData.consent1 || !formData.consent2 || !formData.consent3) {
-      newErrors.consent = 'All declarations must be accepted';
+    if (stepIndex === 0) {
+      // Step 0: Personal Information
+      if (!formData.name.trim()) newErrors.name = 'Name is required';
+      if (formData.aadhaar.replace(/\s/g, '').length !== 12) newErrors.aadhaar = 'Valid 12-digit Aadhaar required';
+      if (!/^\d{10}$/.test(formData.mobile)) newErrors.mobile = 'Valid 10-digit mobile required';
+    } else if (stepIndex === 1) {
+      // Step 1: Complaint Details
+      if (formData.description.length < 30) newErrors.description = 'Description must be at least 30 characters';
+    } else if (stepIndex === 2) {
+      // Step 2: Evidence & Media (optional, no required fields)
+    } else if (stepIndex === 3) {
+      // Step 3: Location & Declaration
+      if (!formData.consent1 || !formData.consent2 || !formData.consent3) {
+        newErrors.consent = 'All declarations must be accepted';
+      }
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleContinue = () => {
+    if (validateStep(step)) {
+      setStep(prev => prev + 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      addToast('Please fill all required fields', 'error');
+    }
+  };
+
+  const handleBack = () => {
+    setStep(prev => prev - 1);
+    setErrors({});
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!validate()) {
-      addToast('Please fix all errors before submitting', 'error');
+    if (!validateStep(3)) {
+      addToast('Please complete all declarations', 'error');
       return;
     }
 
@@ -782,8 +867,10 @@ function RegisterPanel({ addComplaint, addToast }) {
       <StepsBar currentStep={step} />
 
       <form onSubmit={handleSubmit} style={{ marginTop: '40px' }}>
-        {/* Personal Information */}
-        <SectionLabel>Personal Information</SectionLabel>
+        {/* Step 0: Personal Information */}
+        {step === 0 && (
+          <>
+            <SectionLabel>Personal Information</SectionLabel>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '30px' }}>
           <div>
             <FieldLabel required>Full Name</FieldLabel>
@@ -840,10 +927,14 @@ function RegisterPanel({ addComplaint, addToast }) {
             />
           </div>
         </div>
+          </>
+        )}
 
-        {/* Complaint Details */}
-        <SectionLabel>Complaint Details</SectionLabel>
-        <div style={{ marginBottom: '30px' }}>
+        {/* Step 1: Complaint Details */}
+        {step === 1 && (
+          <>
+            <SectionLabel>Complaint Details</SectionLabel>
+        {/* <div style={{ marginBottom: '30px' }}>
           <FieldLabel required>Category</FieldLabel>
           <div style={{
             display: 'grid',
@@ -886,10 +977,10 @@ function RegisterPanel({ addComplaint, addToast }) {
             ))}
           </div>
           {errors.category && <FieldError>{errors.category}</FieldError>}
-        </div>
+        </div> */}
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
-          <div>
+          {/* <div>
             <FieldLabel required>Complaint Subject</FieldLabel>
             <Input
               value={formData.subject}
@@ -897,8 +988,8 @@ function RegisterPanel({ addComplaint, addToast }) {
               placeholder="Brief subject of your complaint"
             />
             {errors.subject && <FieldError>{errors.subject}</FieldError>}
-          </div>
-          <div>
+          </div> */}
+          {/* <div>
             <FieldLabel required>Ward / Area</FieldLabel>
             <Input
               value={formData.ward}
@@ -906,7 +997,7 @@ function RegisterPanel({ addComplaint, addToast }) {
               placeholder="e.g., Ward 12, Zone 3"
             />
             {errors.ward && <FieldError>{errors.ward}</FieldError>}
-          </div>
+          </div> */}
         </div>
 
         <div style={{ marginBottom: '20px' }}>
@@ -923,15 +1014,19 @@ function RegisterPanel({ addComplaint, addToast }) {
             fontSize: '12px',
             marginTop: '6px',
           }}>
-            <span style={{ color: formData.description.length < 30 ? COLORS.saffron : COLORS.green }}>
+            <span style={{ color: formData.description.length < 2 ? COLORS.saffron : COLORS.green }}>
               {formData.description.length} / 30 minimum
             </span>
             {errors.description && <FieldError>{errors.description}</FieldError>}
           </div>
         </div>
+          </>
+        )}
 
-        {/* Evidence & Media */}
-        <SectionLabel>Evidence & Media (Optional)</SectionLabel>
+        {/* Step 2: Evidence & Media */}
+        {step === 2 && (
+          <>
+            <SectionLabel>Evidence & Media (Optional)</SectionLabel>
         <div style={{ marginBottom: '30px' }}>
           <input
             ref={fileInputRef}
@@ -1037,11 +1132,15 @@ function RegisterPanel({ addComplaint, addToast }) {
             </div>
           )}
         </div>
+          </>
+        )}
 
-        {/* Location Details */}
-        <SectionLabel>Location Details</SectionLabel>
+        {/* Step 3: Location Details, Declaration & Submit */}
+        {step === 3 && (
+          <>
+            <SectionLabel>Location Details</SectionLabel>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
-          <div>
+          {/* <div>
             <FieldLabel required>Full Address</FieldLabel>
             <Input
               value={formData.address}
@@ -1049,8 +1148,8 @@ function RegisterPanel({ addComplaint, addToast }) {
               placeholder="Street, locality"
             />
             {errors.address && <FieldError>{errors.address}</FieldError>}
-          </div>
-          <div>
+          </div> */}
+          {/* <div>
             <FieldLabel required>City / District</FieldLabel>
             <Input
               value={formData.city}
@@ -1058,7 +1157,7 @@ function RegisterPanel({ addComplaint, addToast }) {
               placeholder="Your city"
             />
             {errors.city && <FieldError>{errors.city}</FieldError>}
-          </div>
+          </div> */}
         </div>
 
         <div style={{
@@ -1135,52 +1234,43 @@ function RegisterPanel({ addComplaint, addToast }) {
               marginTop: '20px',
               background: COLORS.white,
               borderRadius: '10px',
-              padding: '20px',
-              position: 'relative',
               overflow: 'hidden',
+              boxShadow: '0 4px 10px rgba(0,0,0,0.1)',
             }}>
               <div style={{
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                fontSize: '80px',
-                opacity: 0.1,
+                padding: '12px',
+                background: COLORS.cream,
+                borderBottom: `2px solid ${COLORS.gold}`,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
               }}>
-                🗺️
-              </div>
-              <div style={{
-                position: 'relative',
-                zIndex: 1,
-                textAlign: 'center',
-              }}>
-                <div style={{
-                  fontSize: '40px',
-                  animation: 'bounce 2s ease-in-out infinite',
-                  marginBottom: '10px',
-                }}>
-                  📍
-                </div>
-                <p style={{
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  color: COLORS.green,
-                  margin: '0 0 8px 0',
-                }}>
-                  {formData.gps.label}
-                </p>
-                <div style={{
-                  display: 'inline-block',
-                  background: COLORS.navy,
-                  color: COLORS.white,
-                  padding: '6px 12px',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  fontFamily: 'monospace',
-                }}>
-                  {formData.gps.lat}, {formData.gps.lng}
+                <span style={{ fontSize: '20px' }}>📍</span>
+                <div>
+                  <div style={{
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    color: COLORS.green,
+                  }}>
+                    {formData.gps.label}
+                  </div>
+                  <div style={{
+                    fontSize: '11px',
+                    color: COLORS.darkGray,
+                    fontFamily: 'monospace',
+                  }}>
+                    {formData.gps.lat}, {formData.gps.lng}
+                  </div>
                 </div>
               </div>
+              <div 
+                ref={mapRef}
+                style={{
+                  width: '100%',
+                  height: '300px',
+                  background: '#f0f0f0',
+                }}
+              />
             </div>
           )}
         </div>
@@ -1264,20 +1354,81 @@ function RegisterPanel({ addComplaint, addToast }) {
 
           {errors.consent && <FieldError style={{ marginTop: '12px' }}>{errors.consent}</FieldError>}
         </div>
+          </>
+        )}
 
-        {/* Submit Button */}
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            width: '100%',
-            background: loading ? COLORS.mediumGray : `linear-gradient(135deg, ${COLORS.navy} 0%, #004d9f 100%)`,
+        {/* Navigation Buttons */}
+        <div style={{ 
+          display: 'flex', 
+          gap: '15px', 
+          marginTop: '30px',
+          justifyContent: step === 0 ? 'flex-end' : 'space-between'
+        }}>
+          {step > 0 && (
+            <button
+              type="button"
+              onClick={handleBack}
+              style={{
+                flex: 1,
+                background: COLORS.white,
+                color: COLORS.navy,
+                border: `2px solid ${COLORS.navy}`,
+                padding: '16px',
+                fontSize: '16px',
+                fontWeight: 600,
+                borderRadius: '10px',
+                cursor: 'pointer',
+                transition: 'all 0.3s',
+              }}
+              onMouseOver={(e) => {
+                e.target.style.background = COLORS.lightGray;
+              }}
+              onMouseOut={(e) => {
+                e.target.style.background = COLORS.white;
+              }}
+            >
+              ← Back
+            </button>
+          )}
+          
+          {step < 3 ? (
+            <button
+              type="button"
+              onClick={handleContinue}
+              style={{
+                flex: 1,
+                background: `linear-gradient(135deg, ${COLORS.navy} 0%, #004d9f 100%)`,
+                color: COLORS.white,
+                border: 'none',
+                padding: '16px',
+                fontSize: '16px',
+                fontWeight: 600,
+                borderRadius: '10px',
+                cursor: 'pointer',
+                transition: 'transform 0.2s',
+              }}
+              onMouseOver={(e) => {
+                e.target.style.transform = 'scale(1.02)';
+              }}
+              onMouseOut={(e) => {
+                e.target.style.transform = 'scale(1)';
+              }}
+            >
+              Continue →
+            </button>
+          ) : (
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                flex: 1,
+                background: loading ? COLORS.mediumGray : `linear-gradient(135deg, ${COLORS.green} 0%, #0a6604 100%)`,
             color: COLORS.white,
             border: 'none',
             padding: '18px',
-            fontSize: '18px',
-            fontWeight: 700,
-            borderRadius: '12px',
+            fontSize: '16px',
+            fontWeight: 600,
+            borderRadius: '10px',
             cursor: loading ? 'not-allowed' : 'pointer',
             display: 'flex',
             alignItems: 'center',
@@ -1298,7 +1449,9 @@ function RegisterPanel({ addComplaint, addToast }) {
               📝 Submit Complaint
             </>
           )}
-        </button>
+            </button>
+          )}
+        </div>
       </form>
     </div>
   );
