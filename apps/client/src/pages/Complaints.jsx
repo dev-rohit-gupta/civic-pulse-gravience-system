@@ -89,150 +89,175 @@ const Complaints = () => {
         </div>
       </div>
 
-      <div className="overflow-x-auto bg-white rounded-lg border border-gray-200">
-        <table className="w-full">
-          <thead className="bg-gray-50 border-b border-gray-200">
-            <tr>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">ID</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Description</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Category</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Priority</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Status</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Assigned To</th>
-              {role !== "citizen" && <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Actions</th>}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {complaints.map((complaint) => (
-              <tr key={complaint.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 font-semibold text-gray-900">{complaint.id}</td>
-                <td className="px-6 py-4 text-gray-700">{complaint.description}</td>
-                <td className="px-6 py-4 text-gray-700">{complaint.category}</td>
-                <td className="px-6 py-4">
-                  <span
-                    className={`inline-block px-3 py-1 text-xs font-semibold rounded ${getPriorityBadge(complaint.priority)}`}
-                  >
-                    {complaint.priority}
-                  </span>
-                </td>
-                <td className="px-6 py-4">
-                  <span
-                    className={`inline-block px-3 py-1 text-xs font-semibold rounded ${getStatusBadge(complaint.status)}`}
-                  >
-                    {complaint.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-gray-700">{complaint.assignedTo || "Unassigned"}</td>
-                {role !== "citizen" && (
-                  <td className="px-6 py-4">
-                    <div className="flex gap-2">
-                      {/* ADMIN ACTIONS */}
-                      {role === "admin" && (
-                        <>
-                          <button
-                            onClick={() => {
-                              setSelectedComplaint(complaint);
-                              setShowEditModal(true);
-                            }}
-                            className="p-2 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition-colors"
-                            title="Edit/Assign"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              setSelectedComplaint(complaint);
-                              setShowStatusModal(true);
-                            }}
-                            className="p-2 bg-green-100 text-green-600 rounded hover:bg-green-200 transition-colors"
-                            title="Update Status"
-                          >
-                            <RefreshCw className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              if (window.confirm("Are you sure you want to delete this complaint?")) {
-                                handleDeleteComplaint(complaint.id);
-                              }
-                            }}
-                            className="p-2 bg-red-100 text-red-600 rounded hover:bg-red-200 transition-colors"
-                            title="Delete"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </>
-                      )}
-
-                      {/* DEPARTMENT ACTIONS */}
-                      {role === "department" && (
-                        <>
-                          {!complaint.assignedTo ? (
-                            <button
-                              onClick={() => {
-                                setSelectedComplaint(complaint);
-                                setShowEditModal(true);
-                              }}
-                              className="px-3 py-1 text-sm bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition-colors"
-                            >
-                              Assign
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => {
-                                setSelectedComplaint(complaint);
-                                setShowEditModal(true);
-                              }}
-                              className="px-3 py-1 text-sm bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition-colors"
-                            >
-                              Re-assign
-                            </button>
-                          )}
-                          <button
-                            onClick={() => {
-                              setSelectedComplaint(complaint);
-                              setShowStatusModal(true);
-                            }}
-                            className="p-2 bg-purple-100 text-purple-600 rounded hover:bg-purple-200 transition-colors"
-                            title="Override Status"
-                          >
-                            <RefreshCw className="w-4 h-4" />
-                          </button>
-                        </>
-                      )}
-
-                      {/* OPERATOR ACTIONS */}
-                      {role === "operator" && (
-                        <>
-                          <button
-                            onClick={() => {
-                              setSelectedComplaint(complaint);
-                              setShowStatusModal(true);
-                            }}
-                            className="px-3 py-1 text-sm bg-green-100 text-green-600 rounded hover:bg-green-200 transition-colors flex items-center gap-1"
-                          >
-                            <RefreshCw className="w-3 h-3" />
-                            Update
-                          </button>
-                          <button
-                            onClick={() => {
-                              setSelectedComplaint(complaint);
-                              setShowEscalateModal(true);
-                            }}
-                            className="px-3 py-1 text-sm bg-orange-100 text-orange-600 rounded hover:bg-orange-200 transition-colors flex items-center gap-1"
-                          >
-                            <ArrowUp className="w-3 h-3" />
-                            Escalate
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </td>
-                )}
+      {complaints.length === 0 ? (
+        <div className="bg-white rounded-lg border border-gray-200 p-12">
+          <div className="text-center">
+            <div className="text-6xl mb-4">📋</div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Complaints Found</h3>
+            <p className="text-sm text-gray-500 mb-6">
+              {searchComplaint || filterPriority !== "All" || filterStatus !== "All"
+                ? "No complaints match your search or filter criteria. Try adjusting your filters."
+                : role === "citizen"
+                ? "You haven't submitted any complaints yet."
+                : "There are no complaints to display at the moment."}
+            </p>
+            {(role === "citizen" || role === "admin") && !searchComplaint && filterPriority === "All" && filterStatus === "All" && (
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                {role === "citizen" ? "Submit Your First Complaint" : "Add Your First Complaint"}
+              </button>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="overflow-x-auto bg-white rounded-lg border border-gray-200">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">ID</th>
+                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Description</th>
+                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Category</th>
+                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Priority</th>
+                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Status</th>
+                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Assigned To</th>
+                {role !== "citizen" && <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Actions</th>}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {complaints.map((complaint) => (
+                <tr key={complaint.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 font-semibold text-gray-900">{complaint.id}</td>
+                  <td className="px-6 py-4 text-gray-700">{complaint.description}</td>
+                  <td className="px-6 py-4 text-gray-700">{complaint.category}</td>
+                  <td className="px-6 py-4">
+                    <span
+                      className={`inline-block px-3 py-1 text-xs font-semibold rounded ${getPriorityBadge(complaint.priority)}`}
+                    >
+                      {complaint.priority}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span
+                      className={`inline-block px-3 py-1 text-xs font-semibold rounded ${getStatusBadge(complaint.status)}`}
+                    >
+                      {complaint.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-gray-700">{complaint.assignedTo || "Unassigned"}</td>
+                  {role !== "citizen" && (
+                    <td className="px-6 py-4">
+                      <div className="flex gap-2">
+                        {/* ADMIN ACTIONS */}
+                        {role === "admin" && (
+                          <>
+                            <button
+                              onClick={() => {
+                                setSelectedComplaint(complaint);
+                                setShowEditModal(true);
+                              }}
+                              className="p-2 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition-colors"
+                              title="Edit/Assign"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedComplaint(complaint);
+                                setShowStatusModal(true);
+                              }}
+                              className="p-2 bg-green-100 text-green-600 rounded hover:bg-green-200 transition-colors"
+                              title="Update Status"
+                            >
+                              <RefreshCw className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (window.confirm("Are you sure you want to delete this complaint?")) {
+                                  handleDeleteComplaint(complaint.id);
+                                }
+                              }}
+                              className="p-2 bg-red-100 text-red-600 rounded hover:bg-red-200 transition-colors"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
+
+                        {/* DEPARTMENT ACTIONS */}
+                        {role === "department" && (
+                          <>
+                            {!complaint.assignedTo ? (
+                              <button
+                                onClick={() => {
+                                  setSelectedComplaint(complaint);
+                                  setShowEditModal(true);
+                                }}
+                                className="px-3 py-1 text-sm bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition-colors"
+                              >
+                                Assign
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  setSelectedComplaint(complaint);
+                                  setShowEditModal(true);
+                                }}
+                                className="px-3 py-1 text-sm bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition-colors"
+                              >
+                                Re-assign
+                              </button>
+                            )}
+                            <button
+                              onClick={() => {
+                                setSelectedComplaint(complaint);
+                                setShowStatusModal(true);
+                              }}
+                              className="p-2 bg-purple-100 text-purple-600 rounded hover:bg-purple-200 transition-colors"
+                              title="Override Status"
+                            >
+                              <RefreshCw className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
+
+                        {/* OPERATOR ACTIONS */}
+                        {role === "operator" && (
+                          <>
+                            <button
+                              onClick={() => {
+                                setSelectedComplaint(complaint);
+                                setShowStatusModal(true);
+                              }}
+                              className="px-3 py-1 text-sm bg-green-100 text-green-600 rounded hover:bg-green-200 transition-colors flex items-center gap-1"
+                            >
+                              <RefreshCw className="w-3 h-3" />
+                              Update
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedComplaint(complaint);
+                                setShowEscalateModal(true);
+                              }}
+                              className="px-3 py-1 text-sm bg-orange-100 text-orange-600 rounded hover:bg-orange-200 transition-colors flex items-center gap-1"
+                            >
+                              <ArrowUp className="w-3 h-3" />
+                              Escalate
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {showAddModal && <AddComplaintModal onClose={() => setShowAddModal(false)} />}
       {showEditModal && selectedComplaint && (

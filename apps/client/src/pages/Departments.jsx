@@ -26,7 +26,8 @@ export default function Departments() {
     try {
       setLoading(true);
       const response = await getAllDepartments();
-      setDepartments(response.data || []);
+      console.log('Fetched Departments:', response);
+      setDepartments(response || []);
     } catch (error) {
       showNotification(error.message || "Failed to load departments", "error");
     } finally {
@@ -66,7 +67,7 @@ export default function Departments() {
     setModalMode("edit");
     setTitle(dept.title);
     setDescription(dept.description || "");
-    setCategory(dept.category);
+    setCategory(dept.category?.name || dept.category);
     setCurrentDept(dept);
     setErrors({});
     setShowModal(true);
@@ -259,7 +260,7 @@ export default function Departments() {
                   fontSize: "12px",
                   fontWeight: "500"
                 }}>
-                  {dept.category}
+                  {dept.category?.icon && `${dept.category.icon} `}{dept.category?.name || dept.category}
                 </span>
               </div>
               

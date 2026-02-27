@@ -2,7 +2,7 @@ import api from './api';
 
 export const getAllCategories = async () => {
   const response = await api.get('/api/category');
-  
+  console.log('Fetched Categories:', response);  
   return response;
 };
 

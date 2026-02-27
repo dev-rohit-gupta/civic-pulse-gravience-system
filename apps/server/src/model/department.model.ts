@@ -1,9 +1,14 @@
 
 
 import mongoose from "mongoose";
-import { Department } from "@civic-pulse/schemas";
+import type { Department } from "@civic-pulse/schemas";
 
-const DepartmentSchema = new mongoose.Schema<Department>({
+// Mongoose document interface - category is ObjectId in DB
+interface IDepartment extends Omit<Department, 'category'> {
+  category: mongoose.Types.ObjectId;
+}
+
+const DepartmentSchema = new mongoose.Schema<IDepartment>({
     id : {
         type : String,
         required : true,
@@ -29,4 +34,4 @@ const DepartmentSchema = new mongoose.Schema<Department>({
     },
 });
 
-export const DepartmentModel = mongoose.model<Department>("Department", DepartmentSchema);
+export const DepartmentModel = mongoose.model<IDepartment>("Department", DepartmentSchema);

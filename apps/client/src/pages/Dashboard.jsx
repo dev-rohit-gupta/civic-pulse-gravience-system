@@ -99,58 +99,74 @@ const Dashboard = () => {
       <div className="flex flex-col gap-6 grow">
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Complaints</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 font-semibold text-gray-900">ID</th>
-                  <th className="text-left py-3 px-4 font-semibold text-gray-900">Description</th>
-                  <th className="text-center py-3 px-4 font-semibold text-gray-900">Priority</th>
-                  <th className="text-center py-3 px-4 font-semibold text-gray-900">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {complaints.slice(0, 5).map((complaint) => (
-                  <tr key={complaint.id} className="hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0">
-                    <td className="py-3 px-4 font-semibold text-gray-900">{complaint.id}</td>
-                    <td className="py-3 px-4 text-sm text-gray-600">{complaint.description}</td>
-                    <td className="py-3 px-4 text-center">
-                      <span className={`text-xs px-2 py-1 rounded ${getPriorityBadge(complaint.priority)}`}>
-                        {complaint.priority}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <span className={`text-xs px-2 py-1 rounded ${getStatusBadge(complaint.status)}`}>
-                        {complaint.status}
-                      </span>
-                    </td>
+          {complaints.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">📋</div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Recent Complaints</h3>
+              <p className="text-sm text-gray-500">There are no complaints to display at the moment.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left py-3 px-4 font-semibold text-gray-900">ID</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-900">Description</th>
+                    <th className="text-center py-3 px-4 font-semibold text-gray-900">Priority</th>
+                    <th className="text-center py-3 px-4 font-semibold text-gray-900">Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {complaints.slice(0, 5).map((complaint) => (
+                    <tr key={complaint.id} className="hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0">
+                      <td className="py-3 px-4 font-semibold text-gray-900">{complaint.id}</td>
+                      <td className="py-3 px-4 text-sm text-gray-600">{complaint.description}</td>
+                      <td className="py-3 px-4 text-center">
+                        <span className={`text-xs px-2 py-1 rounded ${getPriorityBadge(complaint.priority)}`}>
+                          {complaint.priority}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <span className={`text-xs px-2 py-1 rounded ${getStatusBadge(complaint.status)}`}>
+                          {complaint.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
        {role !== "citizen" && <div className="bg-white rounded-lg border border-gray-200 p-6">
           <h2 className="text-xl font-bold text-gray-900 mb-4">
             {role === "operator" ? "My Recent Activity" : "Recent Activity"}
           </h2>
-          <div className="space-y-3">
-            {getFilteredActivityLog().slice(0, 5).map((activity) => (
-              <div key={activity.id} className="pb-3 border-b border-gray-100 last:border-0">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center shrink-0">
-                    {activity.user.substring(0, 2)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-900">{activity.action}</p>
-                    <p className="text-xs text-gray-600 mt-1">{activity.details}</p>
-                    <p className="text-xs text-gray-500 mt-1">{activity.timestamp}</p>
+          {getFilteredActivityLog().length === 0 ? (
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">🔔</div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Recent Activity</h3>
+              <p className="text-sm text-gray-500">There is no activity to display at the moment.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {getFilteredActivityLog().slice(0, 5).map((activity) => (
+                <div key={activity.id} className="pb-3 border-b border-gray-100 last:border-0">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center shrink-0">
+                      {activity.user.substring(0, 2)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900">{activity.action}</p>
+                      <p className="text-xs text-gray-600 mt-1">{activity.details}</p>
+                      <p className="text-xs text-gray-500 mt-1">{activity.timestamp}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>}
       </div>
     </div>
