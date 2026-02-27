@@ -4,7 +4,7 @@ import { verifyAccessToken, getToken } from "@civic-pulse/utils";
 export async function requireAuth(req: Request, res: Response, next: NextFunction) {
   const token = getToken(req);
   if (!token) {
-    return res.redirect("/login");
+    return res.status(401).json({ success: false, message: "Unauthorized" });
   }
 
   try {
@@ -17,7 +17,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
 
     next();
   } catch {
-    return res.redirect("/login");
+    return res.status(401).json({ success: false, message: "Unauthorized" });
   }
 }
 

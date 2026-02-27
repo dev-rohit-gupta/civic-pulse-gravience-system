@@ -1,18 +1,21 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router';
-import { BarChart3, Users, ClipboardList, Activity, FileText, User, LogOut, Menu, X } from 'lucide-react';
+import { BarChart3, Users, ClipboardList, Activity, FileText, User, LogOut, Menu, X, Building2, FolderKanban } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 const Sidebar = () => {
   const { sidebarOpen, setSidebarOpen, role } = useApp();
   const location = useLocation();
-  
+  console.log("Current role in Sidebar:", role);
   const navItems = [
-    { icon: BarChart3, label: 'Dashboard', path: '/dashboard' ,roles : ['department', 'citizen' , 'operator', 'admin']},
-    { icon: Users, label: 'Operators', path: '/operators' ,roles : ['department', 'admin']},
-    { icon: ClipboardList, label: 'Complaints', path: '/complaints' ,roles : ['department', 'citizen' , 'operator', 'admin']},
-    { icon: Activity, label: 'Activity Log', path: '/activity' ,roles : [ 'admin']},  
-    { icon: User, label: 'Profile', path: '/profile' ,roles : ['department', 'citizen' , 'operator', 'admin']}
+    { icon: BarChart3, label: 'Dashboard', path: '/dashboard', roles: ['department', 'citizen', 'operator', 'admin'] },
+    { icon: Building2, label: 'Departments', path: '/departments', roles: ['admin'] },
+    { icon: FolderKanban, label: 'Categories', path: '/categories', roles: ['admin'] },
+    { icon: Users, label: 'Operators', path: '/operators', roles: ['department', 'admin', 'operator'] },
+    { icon: ClipboardList, label: 'Complaints', path: '/complaints', roles: ['department', 'operator', 'admin'] },
+    { icon: ClipboardList, label: 'My Complaints', path: '/complaints', roles: ['citizen'] },
+    { icon: Activity, label: 'Activity Log', path: '/activity', roles: ['department', 'citizen', 'operator', 'admin'] },
+    { icon: User, label: 'Profile', path: '/profile', roles: ['department', 'citizen', 'operator', 'admin'] }
   ];
   return (
     <div className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-white border-r border-gray-200 transition-all duration-300 flex flex-col`}>
@@ -28,10 +31,10 @@ const Sidebar = () => {
       {sidebarOpen && (
         <div className="px-6 py-4 border-b border-gray-200">
           <p className="text-xs text-gray-500">Logged in as</p>
-          { role === 'department' && <p className="font-semibold text-gray-900 text-sm mt-1">Department Admin</p>}
-          { role === 'citizen' && <p className="font-semibold text-gray-900 text-sm mt-1">Citizen</p>}
-          { role === 'operator' && <p className="font-semibold text-gray-900 text-sm mt-1">Operator</p>}
-          { role === 'admin' && <p className="font-semibold text-gray-900 text-sm mt-1">System Admin</p>}
+          {role === 'department' && <p className="font-semibold text-gray-900 text-sm mt-1">Department Admin</p>}
+          {role === 'citizen' && <p className="font-semibold text-gray-900 text-sm mt-1">Citizen</p>}
+          {role === 'operator' && <p className="font-semibold text-gray-900 text-sm mt-1">Operator</p>}
+          {role === 'admin' && <p className="font-semibold text-gray-900 text-sm mt-1">System Admin</p>}
         </div>
       )}
 

@@ -3,6 +3,7 @@ import { UserModel } from "../model/user.model.js";
 import { ApiError } from "@civic-pulse/utils";
 import mongoose from "mongoose";
 import { sendStatusUpdateEmail, sendOverrideNotificationEmail } from "./email.service.js";
+import { createActivityLogService } from "./activity.service.js";
 
 interface UpdateComplaintData {
   status?: string;
@@ -75,6 +76,23 @@ export async function updateComplaintService(
     { new: true }
   );
 
+  // Log activity for status change
+  if (updateData.status) {
+    await createActivityLogService(
+      userId,
+      `Complaint ${complaintId} status updated from ${complaint.status} to ${updateData.status}`
+    ).catch(err => console.error("Failed to log activity:", err));
+  }
+
+  // Log activity for operator assignment
+  if (updateData.operator) {
+    const operatorUser = await UserModel.findById(updateData.operator).select("fullname");
+    await createActivityLogService(
+      userId,
+      `Operator ${(operatorUser as any)?.fullname || 'Unknown'} assigned to complaint ${complaintId}`
+    ).catch(err => console.error("Failed to log activity:", err));
+  }
+
   // Email notification logic (non-recursive - only one level up)
   if (updateData.status && complaint.status !== updateData.status) {
     const oldStatus = complaint.status as string;
@@ -105,14 +123,25 @@ export async function updateComplaintService(
         recipientName = (departmentUser as any).fullname || "Department User";
       }
     } else if (userRole === "department") {
-      // Department updates → notify Admin
+      // Department updates → notify Admin of SAME department
       shouldSendEmail = true;
       
-      const adminUser = await UserModel.findOne({ role: "admin" }).select("email fullname");
+      // Find admin of this specific department
+      const adminUser = await UserModel.findOne({ 
+        role: "admin",
+        department: complaint.department // Match complaint's department
+      }).select("email fullname");
       
       if (adminUser) {
         recipientEmail = (adminUser as any).email || "";
         recipientName = (adminUser as any).fullname || "Admin User";
+      } else {
+        // Fallback to any admin if department-specific not found
+        const fallbackAdmin = await UserModel.findOne({ role: "admin" }).select("email fullname");
+        if (fallbackAdmin) {
+          recipientEmail = (fallbackAdmin as any).email || "";
+          recipientName = (fallbackAdmin as any).fullname || "Admin User";
+        }
       }
 
       // Check if this is an override (department changing operator's work)

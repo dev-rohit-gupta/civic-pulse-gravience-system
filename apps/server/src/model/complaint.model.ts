@@ -1,12 +1,14 @@
 import mongoose from "mongoose";
 import type { Complaint } from "@civic-pulse/schemas";
 
-const complaintSchema = new mongoose.Schema<Complaint>(
+type Icomplaint  = Complaint & mongoose.Document;
+
+const complaintSchema = new mongoose.Schema<Icomplaint>(
   {
     citizen: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: false, // Optional for public submissions
     },
     title: {
       type: String,
@@ -22,18 +24,54 @@ const complaintSchema = new mongoose.Schema<Complaint>(
     },
     image: {
       type: String,
-      required: true,
+      required: false, // Optional for public submissions
     },
     location: {
       coordinates: {
         type: [Number, Number], // [lng, lat]
-        required: true,
+        required: false, // Optional for public submissions
       },
     },
     category: {
       type: String,
       enum: ["Road", "Water", "Electricity", "Garbage", "Other"],
       required: true,
+    },
+    // Public submission fields
+    id: {
+      type: String,
+      unique: true,
+      sparse: true, // Allows null values while maintaining uniqueness for non-null values
+    },
+    isPublicSubmission: {
+      type: Boolean,
+      default: false,
+    },
+    citizenName: {
+      type: String,
+    },
+    citizenPhone: {
+      type: String,
+    },
+    citizenAadhaar: {
+      type: String,
+    },
+    citizenEmail: {
+      type: String,
+    },
+    priority: {
+      type: String,
+      enum: ["low", "medium", "high"],
+      default: "medium",
+    },
+    city: {
+      type: String,
+    },
+    ward: {
+      type: String,
+    },
+    address: {
+      type: String,
     },
     supporters: {
       type: [mongoose.Schema.Types.ObjectId],
@@ -52,7 +90,7 @@ const complaintSchema = new mongoose.Schema<Complaint>(
     department: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Department",
-      required: true,
+      required: false, // Optional for public submissions, will be assigned later
     },
     operator: {
       type: mongoose.Schema.Types.ObjectId,
@@ -108,4 +146,4 @@ const complaintSchema = new mongoose.Schema<Complaint>(
   { timestamps: true }
 );
 
-export const ComplaintModel = mongoose.model<Complaint>("Complaint", complaintSchema);
+export const ComplaintModel = mongoose.model<Icomplaint>("Complaint", complaintSchema);

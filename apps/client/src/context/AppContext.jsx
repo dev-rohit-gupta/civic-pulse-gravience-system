@@ -1,4 +1,9 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { getCurrentUser } from '../services/authService';
+import { getAllComplaints, registerComplaint, updateComplaintStatus, deleteComplaint, escalateComplaint } from '../services/complaintService';
+import { getAllOperators, createOperator, updateOperator, deleteOperator } from '../services/userService';
+import { getActivityLogs } from '../services/activityService';
+import { getDashboardStats as fetchDashboardStats } from '../services/dashboardService';
 
 const AppContext = createContext();
 
@@ -14,32 +19,95 @@ export const AppProvider = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [notification, setNotification] = useState(null);
 
-  // role can be 'department', 'citizen', 'operator', 'admin'
-  const [role, setRole] = useState("citizen")
+  // Get current user from localStorage
+  const user = getCurrentUser();
+  const [currentUser, setCurrentUser] = useState(user);
+  const [role, setRole] = useState(user?.role || null);
+
   // STATE MANAGEMENT FOR ALL DATA
-  const [complaints, setComplaints] = useState([
-    { id: 'CMP-1001', description: 'Pothole on Main Street', category: 'Road', priority: 'High', status: 'Pending', citizen: 'John Doe', assignedTo: null, dueDate: '2026-02-26', createdDate: '2026-02-24', escalationLevel: 0 },
-    { id: 'CMP-1002', description: 'Power outage in Phase 2', category: 'Electrical', priority: 'Medium', status: 'Working', citizen: 'Jane Smith', assignedTo: 'Vikram Joshi', dueDate: '2026-02-27', createdDate: '2026-02-23', escalationLevel: 0 },
-    { id: 'CMP-1003', description: 'Water pipeline burst', category: 'Water', priority: 'High', status: 'Pending', citizen: 'Ahmed Hassan', assignedTo: 'Sneha Kulkarni', dueDate: '2026-02-25', createdDate: '2026-02-22', escalationLevel: 1 },
-    { id: 'CMP-1004', description: 'Garbage collection overdue', category: 'Sanitation', priority: 'Low', status: 'Resolved', citizen: 'Maria Garcia', assignedTo: 'Priya Sharma', dueDate: '2026-02-28', createdDate: '2026-02-21', escalationLevel: 0 },
-    { id: 'CMP-1005', description: 'Street light broken', category: 'Road', priority: 'Medium', status: 'Working', citizen: 'David Lee', assignedTo: 'Raj Patil', dueDate: '2026-02-29', createdDate: '2026-02-20', escalationLevel: 0 }
-  ]);
+  const [complaints, setComplaints] = useState([]);
+  const [operators, setOperators] = useState([]);
+  const [activityLog, setActivityLog] = useState([]);
+  const [dashboardStats, setDashboardStats] = useState(null);
 
-  const [operators, setOperators] = useState([
-    { id: 1, name: 'Raj Patil', department: 'Roads', status: 'Active', rating: 4.8, complaints: 12, city: 'Mumbai', phone: '9876543210', email: 'raj@civicpulse.in' },
-    { id: 2, name: 'Sneha Kulkarni', department: 'Water', status: 'Active', rating: 4.6, complaints: 8, city: 'Pune', phone: '9876543211', email: 'sneha@civicpulse.in' },
-    { id: 3, name: 'Vikram Joshi', department: 'Electrical', status: 'Active', rating: 4.9, complaints: 15, city: 'Bangalore', phone: '9876543212', email: 'vikram@civicpulse.in' },
-    { id: 4, name: 'Priya Sharma', department: 'Sanitation', status: 'Active', rating: 4.5, complaints: 10, city: 'Mumbai', phone: '9876543213', email: 'priya@civicpulse.in' },
-    { id: 5, name: 'Arjun Kumar', department: 'Parks', status: 'Inactive', rating: 4.2, complaints: 6, city: 'Delhi', phone: '9876543214', email: 'arjun@civicpulse.in' }
-  ]);
+  // LOADING AND ERROR STATES
+  const [isLoading, setIsLoading] = useState({
+    complaints: false,
+    operators: false,
+    activities: false,
+    dashboard: false
+  });
+  const [errors, setErrors] = useState({});
 
-  const [activityLog, setActivityLog] = useState([
-    { id: 1, timestamp: '2026-02-24 14:32', action: 'Complaint Created', details: 'CMP-1001: Pothole reported by citizen', user: 'System' },
-    { id: 2, timestamp: '2026-02-24 14:45', action: 'AI Validation', details: 'CMP-1001: Passed spam detection', user: 'AI Engine' },
-    { id: 3, timestamp: '2026-02-24 15:00', action: 'Priority Assigned', details: 'CMP-1001: High Priority (Score: 85)', user: 'System' },
-    { id: 4, timestamp: '2026-02-24 15:15', action: 'Department Assigned', details: 'CMP-1001: Assigned to Roads Dept', user: 'Admin' },
-    { id: 5, timestamp: '2026-02-24 16:30', action: 'Operator Assigned', details: 'CMP-1001: Assigned to Raj Patil', user: 'Department Admin' }
-  ]);
+  // FETCH ALL DATA ON MOUNT
+  useEffect(() => {
+    if (user && user.role) {
+      setRole(user.role);
+      fetchComplaints();
+      fetchOperators();
+      fetchActivityLogs();
+      fetchDashboard();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only once on mount
+
+  // FETCH FUNCTIONS
+  const fetchComplaints = async (filters = {}) => {
+    try {
+      setIsLoading(prev => ({ ...prev, complaints: true }));
+      const response = await getAllComplaints(filters);
+      console.log('Fetched complaints:', response);
+      setComplaints(response.data || []);
+      setErrors(prev => ({ ...prev, complaints: null }));
+    } catch (error) {
+      console.error('Error fetching complaints:', error);
+      setErrors(prev => ({ ...prev, complaints: error.message || 'Failed to fetch complaints' }));
+    } finally {
+      setIsLoading(prev => ({ ...prev, complaints: false }));
+    }
+  };
+
+  const fetchOperators = async (searchQuery = '') => {
+    try {
+      setIsLoading(prev => ({ ...prev, operators: true }));
+      const response = await getAllOperators(searchQuery);
+      setOperators(response.data || []);
+      setErrors(prev => ({ ...prev, operators: null }));
+    } catch (error) {
+      console.error('Error fetching operators:', error);
+      setErrors(prev => ({ ...prev, operators: error.message || 'Failed to fetch operators' }));
+    } finally {
+      setIsLoading(prev => ({ ...prev, operators: false }));
+    }
+  };
+
+  const fetchActivityLogs = async (params = { limit: 50 }) => {
+    try {
+      setIsLoading(prev => ({ ...prev, activities: true }));
+      const response = await getActivityLogs(params);
+      setActivityLog(response.data || []);
+      setErrors(prev => ({ ...prev, activities: null }));
+    } catch (error) {
+      console.error('Error fetching activity logs:', error);
+      setErrors(prev => ({ ...prev, activities: error.message || 'Failed to fetch activity logs' }));
+    } finally {
+      setIsLoading(prev => ({ ...prev, activities: false }));
+    }
+  };
+
+  const fetchDashboard = async () => {
+    try {
+      setIsLoading(prev => ({ ...prev, dashboard: true }));
+      const response = await fetchDashboardStats();
+      setDashboardStats(response.data || null);
+      setErrors(prev => ({ ...prev, dashboard: null }));
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error);
+      setErrors(prev => ({ ...prev, dashboard: error.message || 'Failed to fetch dashboard stats' }));
+    } finally {
+      setIsLoading(prev => ({ ...prev, dashboard: false }));
+    }
+  };
 
   // SHOW NOTIFICATION
   const showNotification = (message, type = 'success') => {
@@ -48,125 +116,130 @@ export const AppProvider = ({ children }) => {
   };
 
   // COMPLAINT FUNCTIONS
-  const handleAddComplaint = (complaintForm) => {
-    if (!complaintForm.description || !complaintForm.category || !complaintForm.citizen) {
+  const handleAddComplaint = async (complaintForm) => {
+    if (!complaintForm.description || !complaintForm.title) {
       showNotification('Please fill all required fields', 'error');
       return false;
     }
-    const newComplaint = {
-      id: `CMP-${Math.floor(Math.random() * 10000)}`,
-      ...complaintForm,
-      createdDate: new Date().toISOString().split('T')[0]
-    };
-    setComplaints([newComplaint, ...complaints]);
-    addActivity(`Complaint Created`, `${newComplaint.id}: ${newComplaint.description} reported by ${newComplaint.citizen}`, 'System');
-    showNotification('Complaint added successfully!');
-    return true;
+    
+    try {
+      const response = await registerComplaint(complaintForm);
+      await fetchComplaints(); // Refresh complaints list
+      await fetchActivityLogs(); // Refresh activity logs
+      showNotification('Complaint registered successfully!');
+      return true;
+    } catch (error) {
+      console.error('Error registering complaint:', error);
+      showNotification(error.message || 'Failed to register complaint', 'error');
+      return false;
+    }
   };
 
-  const handleUpdateComplaint = (updatedComplaint) => {
-    setComplaints(complaints.map(c => c.id === updatedComplaint.id ? { ...updatedComplaint } : c));
-    addActivity('Complaint Updated', `${updatedComplaint.id}: Status updated to ${updatedComplaint.status}`, 'Admin');
-    showNotification('Complaint updated successfully!');
-    return true;
+  const handleUpdateComplaint = async (complaintId, updateData) => {
+    try {
+      const response = await updateComplaintStatus(complaintId, updateData);
+      await fetchComplaints(); // Refresh complaints list
+      await fetchActivityLogs(); // Refresh activity logs
+      showNotification('Complaint updated successfully!');
+      return true;
+    } catch (error) {
+      console.error('Error updating complaint:', error);
+      showNotification(error.message || 'Failed to update complaint', 'error');
+      return false;
+    }
   };
 
-  const handleDeleteComplaint = (id) => {
-    setComplaints(complaints.filter(c => c.id !== id));
-    addActivity('Complaint Deleted', `${id}: Complaint removed from system`, 'Admin');
-    showNotification('Complaint deleted successfully!');
+  const handleDeleteComplaint = async (id) => {
+    try {
+      await deleteComplaint(id);
+      await fetchComplaints(); // Refresh complaints list
+      await fetchActivityLogs(); // Refresh activity logs
+      showNotification('Complaint deleted successfully!');
+      return true;
+    } catch (error) {
+      console.error('Error deleting complaint:', error);
+      showNotification(error.message || 'Failed to delete complaint', 'error');
+      return false;
+    }
   };
 
   const handleEscalateComplaint = async (complaintId, reason) => {
-    // Find the complaint
-    const complaint = complaints.find(c => c.id === complaintId);
-    if (!complaint) {
-      showNotification('Complaint not found!', 'error');
+    try {
+      const response = await escalateComplaint(complaintId, reason);
+      await fetchComplaints(); // Refresh complaints list
+      await fetchActivityLogs(); // Refresh activity logs
+      showNotification('Complaint escalated successfully!');
+      return true;
+    } catch (error) {
+      console.error('Error escalating complaint:', error);
+      showNotification(error.message || 'Failed to escalate complaint', 'error');
       return false;
     }
-
-    // Determine escalation level based on role
-    let escalatedTo = '';
-    let newEscalationLevel = (complaint.escalationLevel || 0) + 1;
-    
-    if (role === 'operator') {
-      escalatedTo = 'Department';
-    } else if (role === 'department') {
-      escalatedTo = 'Admin';
-    } else {
-      showNotification('Cannot escalate from this role!', 'error');
-      return false;
-    }
-
-    // Update complaint with escalation
-    const updatedComplaint = {
-      ...complaint,
-      escalationLevel: newEscalationLevel,
-      status: 'assigned', // Reset to assigned when escalated
-      assignedTo: null, // Clear assignment until reassigned at new level
-    };
-
-    setComplaints(complaints.map(c => c.id === complaintId ? updatedComplaint : c));
-    addActivity(
-      'Complaint Escalated',
-      `${complaintId}: Escalated to ${escalatedTo} - Reason: ${reason.substring(0, 50)}...`,
-      role.charAt(0).toUpperCase() + role.slice(1)
-    );
-    showNotification(`Complaint escalated to ${escalatedTo} successfully!`);
-    return true;
   };
 
   // OPERATOR FUNCTIONS
-  const handleAddOperator = (operatorForm) => {
-    if (!operatorForm.name || !operatorForm.department || !operatorForm.email) {
+  const handleAddOperator = async (operatorForm) => {
+    if (!operatorForm.name || !operatorForm.email) {
       showNotification('Please fill all required fields', 'error');
       return false;
     }
-    const newOperator = {
-      id: Math.max(...operators.map(c => c.id)) + 1,
-      ...operatorForm,
-      rating: parseFloat(operatorForm.rating) || 4.0,
-      complaints: 0
-    };
-    setOperators([...operators, newOperator]);
-    addActivity('Operator Registered', `Registered new operator ${newOperator.name}`, 'Admin');
-    showNotification('Operator added successfully!');
-    return true;
+    
+    try {
+      const response = await createOperator(operatorForm);
+      await fetchOperators(); // Refresh operators list
+      await fetchActivityLogs(); // Refresh activity logs
+      showNotification('Operator created successfully!');
+      return true;
+    } catch (error) {
+      console.error('Error creating operator:', error);
+      showNotification(error.message || 'Failed to create operator', 'error');
+      return false;
+    }
   };
 
-  const handleUpdateOperator = (updatedOperator) => {
-    setOperators(operators.map(c => c.id === updatedOperator.id ? { ...updatedOperator } : c));
-    addActivity('Operator Updated', `Updated operator ${updatedOperator.name} profile`, 'Admin');
-    showNotification('Operator updated successfully!');
-    return true;
+  const handleUpdateOperator = async (operatorId, updateData) => {
+    try {
+      const response = await updateOperator(operatorId, updateData);
+      await fetchOperators(); // Refresh operators list
+      await fetchActivityLogs(); // Refresh activity logs
+      showNotification('Operator updated successfully!');
+      return true;
+    } catch (error) {
+      console.error('Error updating operator:', error);
+      showNotification(error.message || 'Failed to update operator', 'error');
+      return false;
+    }
   };
 
-  const handleDeleteOperator = (id) => {
-    const operator = operators.find(c => c.id === id);
-    setOperators(operators.filter(c => c.id !== id));
-    addActivity('Operator Removed', `Removed operator ${operator.name} from system`, 'Admin');
-    showNotification('Operator deleted successfully!');
+  const handleDeleteOperator = async (id) => {
+    try {
+      await deleteOperator(id);
+      await fetchOperators(); // Refresh operators list
+      await fetchActivityLogs(); // Refresh activity logs
+      showNotification('Operator deleted successfully!');
+      return true;
+    } catch (error) {
+      console.error('Error deleting operator:', error);
+      showNotification(error.message || 'Failed to delete operator', 'error');
+      return false;
+    }
   };
 
-  // ACTIVITY LOG FUNCTION
-  const addActivity = (action, details, user) => {
-    const newActivity = {
-      id: activityLog.length + 1,
-      timestamp: new Date().toLocaleString(),
-      action,
-      details,
-      user
-    };
-    setActivityLog([newActivity, ...activityLog]);
-  };
-
-  // FILTERED AND SORTED DATA
+  // FILTERED AND SORTED DATA (Client-side filtering for search/sort)
   const getFilteredComplaints = (searchComplaint, filterPriority, filterStatus, sortBy) => {
-    let filtered = complaints.filter(c => 
-      c.id.toLowerCase().includes(searchComplaint.toLowerCase()) ||
-      c.description.toLowerCase().includes(searchComplaint.toLowerCase()) ||
-      c.citizen.toLowerCase().includes(searchComplaint.toLowerCase())
-    );
+    let filtered = complaints;
+
+    // Note: Role-based filtering is now done on the backend
+    // This function only handles search and sorting
+
+    // Search filter
+    if (searchComplaint) {
+      filtered = filtered.filter(c => 
+        c.complaintId?.toLowerCase().includes(searchComplaint.toLowerCase()) ||
+        c.title?.toLowerCase().includes(searchComplaint.toLowerCase()) ||
+        c.description?.toLowerCase().includes(searchComplaint.toLowerCase())
+      );
+    }
 
     if (filterPriority !== 'All') filtered = filtered.filter(c => c.priority === filterPriority);
     if (filterStatus !== 'All') filtered = filtered.filter(c => c.status === filterStatus);
@@ -175,29 +248,51 @@ export const AppProvider = ({ children }) => {
       const priorityOrder = { 'High': 0, 'Medium': 1, 'Low': 2 };
       filtered.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
     } else if (sortBy === 'date') {
-      filtered.sort((a, b) => new Date(b.createdDate) - new Date(a.createdDate));
+      filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }
 
     return filtered;
   };
 
-  const getFilteredOperators = (searchOperator) => {
-    return operators.filter(c => 
-      c.name.toLowerCase().includes(searchOperator.toLowerCase()) ||
-      c.department.toLowerCase().includes(searchOperator.toLowerCase()) ||
-      c.city.toLowerCase().includes(searchOperator.toLowerCase())
-    );
+  const getDashboardStats = () => {
+    // Return stats from backend (already role-filtered)
+    if (dashboardStats) {
+      return dashboardStats;
+    }
+
+    // Fallback to local calculation if backend data not loaded
+    return {
+      totalOperators: operators.length,
+      activeOperators: operators.filter(o => o.status === 'Active').length,
+      complaintsResolved: complaints.filter(c => c.status === 'Resolved').length,
+      complaintsPending: complaints.filter(c => c.status === 'Pending').length,
+      complaintsWorking: complaints.filter(c => c.status === 'Working').length,
+      totalComplaints: complaints.length
+    };
   };
 
-  // DASHBOARD STATS
-  const getDashboardStats = () => ({
-    totalOperators: operators.length,
-    activeOperators: operators.filter(c => c.status === 'Active').length,
-    complaintsResolved: complaints.filter(c => c.status === 'Resolved').length,
-    complaintsPending: complaints.filter(c => c.status === 'Pending').length,
-    complaintsWorking: complaints.filter(c => c.status === 'Working').length,
-    totalComplaints: complaints.length
-  });
+  const getFilteredOperators = (searchOperator) => {
+    let filtered = operators;
+
+    // Note: Role-based filtering is now done on the backend
+    // This function only handles search
+
+    if (searchOperator) {
+      filtered = filtered.filter(o => 
+        o.name?.toLowerCase().includes(searchOperator.toLowerCase()) ||
+        o.email?.toLowerCase().includes(searchOperator.toLowerCase()) ||
+        o.department?.toLowerCase().includes(searchOperator.toLowerCase())
+      );
+    }
+
+    return filtered;
+  };
+
+  // Get filtered activity log (role-based filtering done on backend)
+  const getFilteredActivityLog = () => {
+    // Backend already filters based on role, just return the data
+    return activityLog;
+  };
 
   const value = {
     sidebarOpen,
@@ -205,19 +300,44 @@ export const AppProvider = ({ children }) => {
     notification,
     setNotification,
     showNotification,
-    complaints,
+    
+    // User & Role
     role,
+    setRole,
+    currentUser,
+    setCurrentUser,
+    
+    // Data
+    complaints,
     operators,
     activityLog,
+    dashboardStats,
+    
+    // Loading & Error States
+    isLoading,
+    errors,
+    
+    // Fetch Functions
+    fetchComplaints,
+    fetchOperators,
+    fetchActivityLogs,
+    fetchDashboard,
+    
+    // Complaint Functions
     handleAddComplaint,
     handleUpdateComplaint,
     handleDeleteComplaint,
     handleEscalateComplaint,
+    
+    // Operator Functions
     handleAddOperator,
     handleUpdateOperator,
     handleDeleteOperator,
+    
+    // Filter & Stats Functions
     getFilteredComplaints,
     getFilteredOperators,
+    getFilteredActivityLog,
     getDashboardStats
   };
 

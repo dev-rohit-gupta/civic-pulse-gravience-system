@@ -1,4 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { 
+  registerPublicComplaint, 
+  trackComplaintByReference, 
+  searchPublicComplaints,
+  getPublicStats 
+} from '../services/publicComplaintService';
 
 // ==================== GLOBAL CONSTANTS ====================
 const COLORS = {
@@ -156,7 +162,7 @@ const SEED_COMPLAINTS = [
 // ==================== MAIN COMPONENT ====================
 export default function CivicPulsePortal() {
   const [activeTab, setActiveTab] = useState('register'); // 'register' or 'track'
-  const [complaints, setComplaints] = useState(SEED_COMPLAINTS);
+  const [complaints, setComplaints] = useState([]);
   const [toasts, setToasts] = useState([]);
   const [stats, setStats] = useState({
     total: 0,
@@ -164,6 +170,45 @@ export default function CivicPulsePortal() {
     avgResponse: 0,
     satisfaction: 0,
   });
+  const [isLoadingComplaints, setIsLoadingComplaints] = useState(false);
+
+  // Fetch complaints and stats on mount
+  useEffect(() => {
+    fetchComplaintsData();
+    fetchStatsData();
+  }, []);
+
+  const fetchComplaintsData = async () => {
+    try {
+      setIsLoadingComplaints(true);
+      const response = await searchPublicComplaints({ limit: 100 });
+      console.log('Fetched complaints:', response.data);
+      setComplaints(response.data || []);
+    } catch (error) {
+      console.error('Error fetching complaints:', error);
+      // Fallback to seed data if API fails
+      setComplaints(SEED_COMPLAINTS);
+    } finally {
+      setIsLoadingComplaints(false);
+    }
+  };
+
+  const fetchStatsData = async () => {
+    try {
+      const statsData = await getPublicStats();
+      const avgResponse = Math.floor(48 + Math.random() * 24); // hours (can be enhanced)
+      const satisfaction = (85 + Math.random() * 10).toFixed(1);
+      
+      setStats({
+        total: statsData.total || 0,
+        resolved: statsData.resolved || 0,
+        avgResponse,
+        satisfaction
+      });
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
+  };
 
   // Inject styles and fonts
   useEffect(() => {
@@ -211,12 +256,16 @@ export default function CivicPulsePortal() {
 
   // Calculate stats
   useEffect(() => {
-    const total = complaints.length;
-    const resolved = complaints.filter(c => c.status === 'resolved').length;
-    const avgResponse = total > 0 ? Math.floor(48 + Math.random() * 24) : 0; // hours
-    const satisfaction = total > 0 ? (85 + Math.random() * 10).toFixed(1) : 0;
-    
-    setStats({ total, resolved, avgResponse, satisfaction });
+    // Stats are now fetched from API, this effect is no longer needed
+    // but keeping for backward compatibility with local data
+    if (complaints.length > 0 && stats.total === 0) {
+      const total = complaints.length;
+      const resolved = complaints.filter(c => c.status === 'resolved').length;
+      const avgResponse = total > 0 ? Math.floor(48 + Math.random() * 24) : 0;
+      const satisfaction = total > 0 ? (85 + Math.random() * 10).toFixed(1) : 0;
+      
+      setStats({ total, resolved, avgResponse, satisfaction });
+    }
   }, [complaints]);
 
   const addToast = (message, type = 'success') => {
@@ -227,16 +276,22 @@ export default function CivicPulsePortal() {
     }, 4000);
   };
 
-  const addComplaint = (complaint) => {
-    const newComplaint = {
-      ...complaint,
-      id: `CP-2024-${10000 + complaints.length + 1}`,
-      status: 'pending',
-      date: new Date().toISOString().split('T')[0],
-    };
-    setComplaints(prev => [newComplaint, ...prev]);
-    addToast(`Complaint registered successfully! ID: ${newComplaint.id}`, 'success');
-    return newComplaint.id;
+  const addComplaint = async (complaint) => {
+    try {
+      // Call backend API to register complaint
+      const response = await registerPublicComplaint(complaint);
+      
+      // Refresh complaints list
+      await fetchComplaintsData();
+      await fetchStatsData();
+      
+      // Return the reference ID from backend
+      return response.data.referenceId || response.data.complaintId;
+    } catch (error) {
+      console.error('Error registering complaint:', error);
+      addToast(error.message || 'Failed to register complaint. Please try again.', 'error');
+      throw error;
+    }
   };
 
   return (
@@ -719,36 +774,44 @@ function RegisterPanel({ addComplaint, addToast }) {
 
     setLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      const id = addComplaint(formData);
-      setSubmittedId(id);
-      setStep(4);
-      setLoading(false);
+    try {
+      // Call API to register complaint
+      const referenceId = await addComplaint(formData);
       
-      // Reset form
-      setTimeout(() => {
-        setFormData({
-          name: '',
-          aadhaar: '',
-          mobile: '',
-          email: '',
-          category: '',
-          subject: '',
-          ward: '',
-          description: '',
-          images: [],
-          address: '',
-          city: '',
-          gps: null,
-          consent1: false,
-          consent2: false,
-          consent3: false,
-        });
-        setStep(0);
-        setSubmittedId(null);
-      }, 5000);
-    }, 2000);
+      if (referenceId) {
+        setSubmittedId(referenceId);
+        setStep(4);
+        addToast(`Complaint registered successfully! Reference ID: ${referenceId}`, 'success');
+        
+        // Reset form after 5 seconds
+        setTimeout(() => {
+          setFormData({
+            name: '',
+            aadhaar: '',
+            mobile: '',
+            email: '',
+            category: '',
+            subject: '',
+            ward: '',
+            description: '',
+            images: [],
+            address: '',
+            city: '',
+            gps: null,
+            consent1: false,
+            consent2: false,
+            consent3: false,
+          });
+          setStep(0);
+          setSubmittedId(null);
+        }, 5000);
+      }
+    } catch (error) {
+      console.error('Failed to register complaint:', error);
+      addToast('Failed to register complaint. Please try again.', 'error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (submittedId) {
@@ -777,18 +840,18 @@ function RegisterPanel({ addComplaint, addToast }) {
           Complaint Registered Successfully!
         </h2>
         <p style={{ fontSize: '16px', color: COLORS.darkGray, marginBottom: '20px' }}>
-          Your complaint has been recorded and assigned a unique ID
+          Your complaint has been recorded and assigned a unique Reference ID
         </p>
         <div style={{
           background: COLORS.cream,
           border: `2px dashed ${COLORS.gold}`,
           borderRadius: '12px',
           padding: '20px',
-          marginBottom: '30px',
+          marginBottom: '20px',
           display: 'inline-block',
         }}>
           <p style={{ fontSize: '14px', color: COLORS.darkGray, margin: '0 0 8px 0' }}>
-            Complaint ID
+            📋 Reference ID
           </p>
           <p style={{
             fontFamily: "'Noto Serif Display', serif",
@@ -800,47 +863,117 @@ function RegisterPanel({ addComplaint, addToast }) {
             {submittedId}
           </p>
         </div>
-        <p style={{ fontSize: '14px', color: COLORS.darkGray, marginBottom: '30px' }}>
-          Please save this ID for tracking your complaint
-        </p>
+        
+        {/* Copy Button */}
         <button
           onClick={() => {
-            setFormData({
-              name: '',
-              aadhaar: '',
-              mobile: '',
-              email: '',
-              category: '',
-              subject: '',
-              ward: '',
-              description: '',
-              images: [],
-              address: '',
-              city: '',
-              gps: null,
-              consent1: false,
-              consent2: false,
-              consent3: false,
-            });
-            setStep(0);
-            setSubmittedId(null);
+            navigator.clipboard.writeText(submittedId);
+            addToast('Reference ID copied to clipboard!', 'success');
           }}
           style={{
-            background: `linear-gradient(135deg, ${COLORS.navy} 0%, #004d9f 100%)`,
-            color: COLORS.white,
-            border: 'none',
-            padding: '14px 32px',
-            fontSize: '16px',
+            background: COLORS.cream,
+            color: COLORS.navy,
+            border: `2px solid ${COLORS.gold}`,
+            padding: '10px 24px',
+            fontSize: '14px',
             fontWeight: 600,
             borderRadius: '8px',
             cursor: 'pointer',
-            transition: 'transform 0.2s',
+            marginBottom: '20px',
+            display: 'inline-block',
           }}
-          onMouseOver={(e) => e.target.style.transform = 'scale(1.05)'}
-          onMouseOut={(e) => e.target.style.transform = 'scale(1)'}
         >
-          Track This Complaint →
+          📋 Copy Reference ID
         </button>
+        
+        <p style={{ fontSize: '14px', color: COLORS.darkGray, marginBottom: '10px', fontWeight: 600 }}>
+          💡 Important: Save this Reference ID
+        </p>
+        <p style={{ fontSize: '13px', color: COLORS.darkGray, marginBottom: '30px' }}>
+          You can use this ID to track your complaint status anytime without logging in
+        </p>
+        
+        <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => {
+              // Switch to track tab and auto-fill the ID
+              setActiveTab('track');
+              setFormData({
+                name: '',
+                aadhaar: '',
+                mobile: '',
+                email: '',
+                category: '',
+                subject: '',
+                ward: '',
+                description: '',
+                images: [],
+                address: '',
+                city: '',
+                gps: null,
+                consent1: false,
+                consent2: false,
+                consent3: false,
+              });
+              setStep(0);
+              setSubmittedId(null);
+            }}
+            style={{
+              background: `linear-gradient(135deg, ${COLORS.navy} 0%, #004d9f 100%)`,
+              color: COLORS.white,
+              border: 'none',
+              padding: '14px 32px',
+              fontSize: '16px',
+              fontWeight: 600,
+              borderRadius: '8px',
+              cursor: 'pointer',
+              transition: 'transform 0.2s',
+            }}
+            onMouseOver={(e) => e.target.style.transform = 'scale(1.05)'}
+            onMouseOut={(e) => e.target.style.transform = 'scale(1)'}
+          >
+            🔍 Track This Complaint
+          </button>
+          
+          <button
+            onClick={() => {
+              setFormData({
+                name: '',
+                aadhaar: '',
+                mobile: '',
+                email: '',
+                category: '',
+                subject: '',
+                ward: '',
+                description: '',
+                images: [],
+                address: '',
+                city: '',
+                gps: null,
+                consent1: false,
+                consent2: false,
+                consent3: false,
+              });
+              setStep(0);
+              setSubmittedId(null);
+            }}
+            style={{
+              background: COLORS.white,
+              color: COLORS.navy,
+              border: `2px solid ${COLORS.navy}`,
+              padding: '14px 32px',
+              fontSize: '16px',
+              fontWeight: 600,
+              borderRadius: '8px',
+              cursor: 'pointer',
+              transition: 'transform 0.2s',
+            }}
+            onMouseOver={(e) => e.target.style.transform = 'scale(1.05)'}
+            onMouseOut={(e) => e.target.style.transform = 'scale(1)'}
+          >
+            ➕ Submit Another Complaint
+          </button>
+        </div>
       </div>
     );
   }
@@ -1462,16 +1595,39 @@ function SearchPanel({ complaints, addToast }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedComplaint, setSelectedComplaint] = useState(null);
+  const [trackingId, setTrackingId] = useState('');
+  const [trackingResult, setTrackingResult] = useState(null);
+  const [isTracking, setIsTracking] = useState(false);
+
+  const handleTrackById = async () => {
+    if (!trackingId.trim()) {
+      addToast('Please enter a Reference ID', 'error');
+      return;
+    }
+
+    setIsTracking(true);
+    try {
+      const response = await trackComplaintByReference(trackingId.trim());
+      setTrackingResult(response.data);
+      addToast('Complaint found!', 'success');
+    } catch (error) {
+      console.error('Error tracking complaint:', error);
+      addToast(error.message || 'Complaint not found. Please check your Reference ID.', 'error');
+      setTrackingResult(null);
+    } finally {
+      setIsTracking(false);
+    }
+  };
 
   const filteredComplaints = complaints.filter(c => {
     const matchesSearch = 
-      c.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.aadhaar.includes(searchQuery) ||
-      c.mobile.includes(searchQuery) ||
-      c.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.ward.toLowerCase().includes(searchQuery.toLowerCase());
+      (c.id || c.complaintId || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (c.name || c.citizenName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (c.mobile || c.citizenPhone || '').includes(searchQuery) ||
+      (c.category || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (c.city || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (c.ward || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (c.title || c.subject || '').toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesFilter = filterStatus === 'all' || c.status === filterStatus;
     
@@ -1494,8 +1650,260 @@ function SearchPanel({ complaints, addToast }) {
         Track & Search Complaints
       </h2>
       <p style={{ color: COLORS.darkGray, marginBottom: '30px' }}>
-        Search by ID, name, Aadhaar, phone, category, city, or ward
+        Track your complaint using Reference ID or search all public complaints
       </p>
+
+      {/* Quick Track by Reference ID */}
+      <div style={{
+        background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)',
+        borderRadius: '12px',
+        padding: '24px',
+        marginBottom: '30px',
+        boxShadow: '0 4px 12px rgba(30, 58, 138, 0.2)',
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          marginBottom: '12px',
+        }}>
+          <span style={{ fontSize: '24px' }}>📋</span>
+          <h3 style={{
+            color: COLORS.white,
+            fontSize: '18px',
+            fontWeight: '600',
+            margin: 0,
+          }}>
+            Track by Reference ID
+          </h3>
+        </div>
+        <p style={{
+          color: 'rgba(255,255,255,0.9)',
+          fontSize: '14px',
+          margin: '0 0 16px 0',
+        }}>
+          Enter your Reference ID (e.g., CMP-2024-10001) to view detailed status
+        </p>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <input
+            type="text"
+            value={trackingId}
+            onChange={(e) => setTrackingId(e.target.value.toUpperCase())}
+            placeholder="CMP-2024-XXXXX"
+            onKeyPress={(e) => e.key === 'Enter' && handleTrackById()}
+            style={{
+              flex: 1,
+              padding: '14px 18px',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '16px',
+              fontWeight: '500',
+              outline: 'none',
+              letterSpacing: '0.5px',
+            }}
+          />
+          <button
+            onClick={handleTrackById}
+            disabled={isTracking}
+            style={{
+              padding: '14px 32px',
+              background: COLORS.white,
+              color: COLORS.navy,
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '16px',
+              fontWeight: '600',
+              cursor: isTracking ? 'not-allowed' : 'pointer',
+              opacity: isTracking ? 0.7 : 1,
+              transition: 'all 0.3s',
+              whiteSpace: 'nowrap',
+            }}
+            onMouseEnter={(e) => {
+              if (!isTracking) {
+                e.target.style.transform = 'translateY(-2px)';
+                e.target.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = 'none';
+            }}
+          >
+            {isTracking ? '🔄 Tracking...' : '🔍 Track Now'}
+          </button>
+        </div>
+      </div>
+
+      {/* Tracking Result Display */}
+      {trackingResult && (
+        <div style={{
+          background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+          border: `2px solid #86efac`,
+          borderRadius: '12px',
+          padding: '24px',
+          marginBottom: '30px',
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '16px' }}>
+            <div>
+              <h3 style={{
+                color: '#166534',
+                fontSize: '20px',
+                fontWeight: '700',
+                margin: '0 0 8px 0',
+              }}>
+                {trackingResult.complaint.title || trackingResult.complaint.subject}
+              </h3>
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                <span style={{
+                  background: '#86efac',
+                  color: '#166534',
+                  padding: '4px 12px',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                }}>
+                  {trackingResult.complaint.complaintId || trackingResult.complaint.id}
+                </span>
+                <span style={{
+                  background: getStatusColor(trackingResult.complaint.status),
+                  color: COLORS.white,
+                  padding: '4px 12px',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                }}>
+                  {trackingResult.complaint.status}
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={() => setTrackingResult(null)}
+              style={{
+                background: 'none',
+                border: 'none',
+                fontSize: '24px',
+                cursor: 'pointer',
+                opacity: 0.6,
+                transition: 'opacity 0.2s',
+              }}
+              onMouseEnter={(e) => e.target.style.opacity = 1}
+              onMouseLeave={(e) => e.target.style.opacity = 0.6}
+            >
+              ✕
+            </button>
+          </div>
+          
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '16px',
+            marginBottom: '20px',
+          }}>
+            <div>
+              <strong style={{ color: '#166534', fontSize: '12px', textTransform: 'uppercase' }}>Category</strong>
+              <p style={{ margin: '4px 0 0 0', color: '#15803d', fontSize: '15px' }}>
+                {trackingResult.complaint.category}
+              </p>
+            </div>
+            <div>
+              <strong style={{ color: '#166534', fontSize: '12px', textTransform: 'uppercase' }}>Location</strong>
+              <p style={{ margin: '4px 0 0 0', color: '#15803d', fontSize: '15px' }}>
+                {trackingResult.complaint.city}, {trackingResult.complaint.ward}
+              </p>
+            </div>
+            <div>
+              <strong style={{ color: '#166534', fontSize: '12px', textTransform: 'uppercase' }}>Priority</strong>
+              <p style={{ margin: '4px 0 0 0', color: '#15803d', fontSize: '15px' }}>
+                {trackingResult.complaint.priority || 'Medium'}
+              </p>
+            </div>
+            <div>
+              <strong style={{ color: '#166534', fontSize: '12px', textTransform: 'uppercase' }}>Contact</strong>
+              <p style={{ margin: '4px 0 0 0', color: '#15803d', fontSize: '15px' }}>
+                {trackingResult.complaint.citizenPhone || trackingResult.complaint.mobile}
+              </p>
+            </div>
+          </div>
+
+          {trackingResult.complaint.description && (
+            <div style={{ marginBottom: '20px' }}>
+              <strong style={{ color: '#166534', fontSize: '12px', textTransform: 'uppercase' }}>Description</strong>
+              <p style={{ margin: '4px 0 0 0', color: '#15803d', fontSize: '15px', lineHeight: '1.6' }}>
+                {trackingResult.complaint.description}
+              </p>
+            </div>
+          )}
+
+          {trackingResult.estimatedResolution && (
+            <div style={{ marginBottom: '20px' }}>
+              <strong style={{ color: '#166534', fontSize: '12px', textTransform: 'uppercase' }}>
+                📅 Estimated Resolution
+              </strong>
+              <p style={{ margin: '4px 0 0 0', color: '#15803d', fontSize: '15px' }}>
+                {new Date(trackingResult.estimatedResolution).toLocaleDateString('en-IN', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })}
+              </p>
+            </div>
+          )}
+
+          {/* Timeline */}
+          {trackingResult.timeline && trackingResult.timeline.length > 0 && (
+            <div>
+              <strong style={{ color: '#166534', fontSize: '14px', display: 'block', marginBottom: '12px' }}>
+                📊 Activity Timeline
+              </strong>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {trackingResult.timeline.map((event, idx) => (
+                  <div key={idx} style={{
+                    background: COLORS.white,
+                    padding: '12px',
+                    borderRadius: '8px',
+                    borderLeft: `4px solid #86efac`,
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+                      <div>
+                        <strong style={{ color: '#166534', fontSize: '14px' }}>
+                          {event.action}
+                        </strong>
+                        {event.message && (
+                          <p style={{ margin: '4px 0 0 0', color: '#15803d', fontSize: '13px' }}>
+                            {event.message}
+                          </p>
+                        )}
+                      </div>
+                      <span style={{ color: '#15803d', fontSize: '12px', whiteSpace: 'nowrap' }}>
+                        {new Date(event.timestamp).toLocaleString('en-IN', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      <hr style={{
+        border: 'none',
+        borderTop: `1px solid ${COLORS.mediumGray}`,
+        margin: '30px 0',
+      }} />
+
+      <h3 style={{
+        color: COLORS.navy,
+        fontSize: '20px',
+        marginBottom: '16px',
+      }}>
+        Browse All Public Complaints
+      </h3>
 
       {/* Search Bar */}
       <div style={{ position: 'relative', marginBottom: '20px' }}>
@@ -1698,24 +2106,29 @@ function SearchPanel({ complaints, addToast }) {
 
 // ==================== DETAIL MODAL ====================
 function DetailModal({ complaint, onClose }) {
-  const category = CATEGORIES.find(c => c.id === complaint.category);
+  const [detailedData, setDetailedData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const timeline = [
-    { label: 'Complaint Submitted', status: 'done', date: complaint.date },
-    { label: 'AI Validation Complete', status: 'done', date: complaint.date },
-  ];
+  useEffect(() => {
+    const fetchDetailedData = async () => {
+      try {
+        const complaintId = complaint.complaintId || complaint.id;
+        const response = await trackComplaintByReference(complaintId);
+        setDetailedData(response.data);
+      } catch (error) {
+        console.error('Error fetching detailed complaint data:', error);
+        // Fallback to showing basic complaint data
+        setDetailedData({ complaint, timeline: [] });
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  if (complaint.status !== 'pending') {
-    timeline.push({ label: 'Field Worker Assigned', status: 'done', date: complaint.date });
-  }
+    fetchDetailedData();
+  }, [complaint]);
 
-  if (complaint.status === 'resolved') {
-    timeline.push({ label: 'Issue Resolved', status: 'done', date: complaint.date });
-  } else if (complaint.status === 'rejected') {
-    timeline.push({ label: 'Complaint Rejected', status: 'done', date: complaint.date });
-  } else if (complaint.status === 'inProgress') {
-    timeline.push({ label: 'Work In Progress', status: 'active', date: 'Ongoing' });
-  }
+  const displayComplaint = detailedData?.complaint || complaint;
+  const timeline = detailedData?.timeline || [];
 
   return (
     <div
@@ -1765,10 +2178,10 @@ function DetailModal({ complaint, onClose }) {
               fontSize: '24px',
               margin: '0 0 6px 0',
             }}>
-              {complaint.id}
+              {displayComplaint.complaintId || displayComplaint.id}
             </h3>
             <p style={{ fontSize: '14px', opacity: 0.9, margin: 0 }}>
-              Filed on {complaint.date}
+              Filed on {new Date(displayComplaint.createdAt || displayComplaint.date).toLocaleDateString('en-IN')}
             </p>
           </div>
           <button
@@ -1793,79 +2206,211 @@ function DetailModal({ complaint, onClose }) {
 
         {/* Content */}
         <div style={{ padding: '30px' }}>
-          <div style={{ marginBottom: '20px' }}>
-            <div style={{
-              fontSize: '13px',
-              fontWeight: 600,
+          {isLoading ? (
+            <div style={{ 
+              textAlign: 'center', 
+              padding: '60px 20px',
               color: COLORS.darkGray,
-              marginBottom: '8px',
             }}>
-              Complaint Description
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔄</div>
+              <p>Loading complaint details...</p>
             </div>
-            <div style={{
-              background: COLORS.cream,
-              padding: '16px',
-              borderRadius: '8px',
-              fontSize: '14px',
-              lineHeight: 1.7,
-              border: `1px solid ${COLORS.mediumGray}`,
-            }}>
-              {complaint.description}
-            </div>
-          </div>
-
-          {/* Timeline */}
-          <div style={{ marginTop: '40px', paddingTop: '30px', borderTop: `2px solid ${COLORS.mediumGray}` }}>
-            <h4 style={{
-              fontFamily: "'Noto Serif Display', serif",
-              fontSize: '20px',
-              color: COLORS.navy,
-              marginBottom: '24px',
-            }}>
-              Activity Timeline
-            </h4>
-            <div style={{ position: 'relative', paddingLeft: '30px' }}>
-              {timeline.map((item, idx) => (
-                <div key={idx} style={{ position: 'relative', paddingBottom: '30px' }}>
-                  {idx < timeline.length - 1 && (
-                    <div style={{
-                      position: 'absolute',
-                      left: '-22px',
-                      top: '12px',
-                      width: '2px',
-                      height: '100%',
-                      background: item.status === 'done' ? COLORS.green : COLORS.mediumGray,
-                    }} />
-                  )}
+          ) : (
+            <>
+              {/* Complaint Info Grid */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: '16px',
+                marginBottom: '24px',
+              }}>
+                <div>
                   <div style={{
-                    position: 'absolute',
-                    left: '-30px',
-                    top: '2px',
-                    width: '16px',
-                    height: '16px',
-                    borderRadius: '50%',
-                    background: item.status === 'done' ? COLORS.green : item.status === 'active' ? COLORS.saffron : COLORS.mediumGray,
-                    border: `3px solid ${COLORS.white}`,
-                    boxShadow: '0 0 0 2px currentColor',
-                    color: item.status === 'done' ? COLORS.green : item.status === 'active' ? COLORS.saffron : COLORS.mediumGray,
-                  }} />
-                  <div>
-                    <div style={{
-                      fontSize: '14px',
-                      fontWeight: 600,
-                      color: item.status === 'done' ? COLORS.navy : COLORS.darkGray,
-                      marginBottom: '4px',
-                    }}>
-                      {item.label}
-                    </div>
-                    <div style={{ fontSize: '12px', color: COLORS.darkGray }}>
-                      {item.date}
-                    </div>
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    color: COLORS.darkGray,
+                    marginBottom: '6px',
+                    textTransform: 'uppercase',
+                  }}>
+                    Category
+                  </div>
+                  <div style={{ fontSize: '14px', color: COLORS.navy, fontWeight: 500 }}>
+                    {displayComplaint.category}
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
+                <div>
+                  <div style={{
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    color: COLORS.darkGray,
+                    marginBottom: '6px',
+                    textTransform: 'uppercase',
+                  }}>
+                    Status
+                  </div>
+                  <div>
+                    <span style={{
+                      display: 'inline-block',
+                      background: getStatusColor(displayComplaint.status),
+                      color: COLORS.white,
+                      padding: '4px 12px',
+                      borderRadius: '6px',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                    }}>
+                      {displayComplaint.status}
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <div style={{
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    color: COLORS.darkGray,
+                    marginBottom: '6px',
+                    textTransform: 'uppercase',
+                  }}>
+                    Priority
+                  </div>
+                  <div style={{ fontSize: '14px', color: COLORS.navy, fontWeight: 500 }}>
+                    {displayComplaint.priority || 'Medium'}
+                  </div>
+                </div>
+                <div>
+                  <div style={{
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    color: COLORS.darkGray,
+                    marginBottom: '6px',
+                    textTransform: 'uppercase',
+                  }}>
+                    Location
+                  </div>
+                  <div style={{ fontSize: '14px', color: COLORS.navy, fontWeight: 500 }}>
+                    {displayComplaint.city}, {displayComplaint.ward}
+                  </div>
+                </div>
+              </div>
+
+              {/* Description */}
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  color: COLORS.darkGray,
+                  marginBottom: '8px',
+                }}>
+                  Complaint Description
+                </div>
+                <div style={{
+                  background: COLORS.cream,
+                  padding: '16px',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  lineHeight: 1.7,
+                  border: `1px solid ${COLORS.mediumGray}`,
+                }}>
+                  {displayComplaint.description}
+                </div>
+              </div>
+
+              {/* Estimated Resolution */}
+              {detailedData?.estimatedResolution && (
+                <div style={{
+                  background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+                  padding: '16px',
+                  borderRadius: '8px',
+                  marginBottom: '20px',
+                  border: '2px solid #fbbf24',
+                }}>
+                  <div style={{
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    color: '#92400e',
+                    marginBottom: '6px',
+                  }}>
+                    📅 Estimated Resolution Date
+                  </div>
+                  <div style={{ fontSize: '16px', color: '#92400e', fontWeight: 600 }}>
+                    {new Date(detailedData.estimatedResolution).toLocaleDateString('en-IN', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Timeline */}
+              {timeline && timeline.length > 0 && (
+                <div style={{ marginTop: '40px', paddingTop: '30px', borderTop: `2px solid ${COLORS.mediumGray}` }}>
+                  <h4 style={{
+                    fontFamily: "'Noto Serif Display', serif",
+                    fontSize: '20px',
+                    color: COLORS.navy,
+                    marginBottom: '24px',
+                  }}>
+                    Activity Timeline
+                  </h4>
+                  <div style={{ position: 'relative', paddingLeft: '30px' }}>
+                    {timeline.map((event, idx) => (
+                      <div key={idx} style={{ position: 'relative', paddingBottom: '30px' }}>
+                        {idx < timeline.length - 1 && (
+                          <div style={{
+                            position: 'absolute',
+                            left: '-22px',
+                            top: '12px',
+                            width: '2px',
+                            height: '100%',
+                            background: COLORS.green,
+                          }} />
+                        )}
+                        <div style={{
+                          position: 'absolute',
+                          left: '-30px',
+                          top: '2px',
+                          width: '16px',
+                          height: '16px',
+                          borderRadius: '50%',
+                          background: COLORS.green,
+                          border: `3px solid ${COLORS.white}`,
+                          boxShadow: `0 0 0 2px ${COLORS.green}`,
+                        }} />
+                        <div>
+                          <div style={{
+                            fontSize: '14px',
+                            fontWeight: 600,
+                            color: COLORS.navy,
+                            marginBottom: '4px',
+                          }}>
+                            {event.action}
+                          </div>
+                          {event.message && (
+                            <div style={{ 
+                              fontSize: '13px', 
+                              color: COLORS.darkGray,
+                              marginBottom: '4px',
+                            }}>
+                              {event.message}
+                            </div>
+                          )}
+                          <div style={{ fontSize: '12px', color: COLORS.darkGray }}>
+                            {new Date(event.timestamp).toLocaleString('en-IN', {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
     </div>

@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router";
+import { loginUser, registerUser, getCurrentUser, isAuthenticated } from "../services/authService";
 
 /* ── Demo users ─────────────────────────────────────────── */
 const DEMO_USERS = {
@@ -287,6 +289,7 @@ function Dashboard({ user, onLogout }) {
 export default function App() {
   const width  = useWidth();
   const isMob  = width < 800;
+  const navigate = useNavigate();
 
   const [mode,     setMode]     = useState("login"); // login | register
   const [role,     setRole]     = useState("Citizen");
@@ -305,13 +308,16 @@ export default function App() {
   const [focus,    setFocus]    = useState("");
   const [hint,     setHint]     = useState(false);
 
-  /* Restore session */
+  /* Restore session - check if already logged in */
   useEffect(() => {
-    try {
-      const s = sessionStorage.getItem("cp_user") || localStorage.getItem("cp_user");
-      if (s) setUser(JSON.parse(s));
-    } catch {}
-  }, []);
+    if (isAuthenticated()) {
+      const currentUser = getCurrentUser();
+      if (currentUser) {
+        // Already logged in, redirect to dashboard
+        navigate('/dashboard', { replace: true });
+      }
+    }
+  }, [navigate]);
 
   /* Auto-fill when role tab changes */
   const prefill = useCallback((r) => {
@@ -344,52 +350,79 @@ export default function App() {
     return e;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length) { setErrors(errs); return; }
     setErrors({});
     setStatus("loading");
-    setTimeout(() => {
+    
+    try {
       if (mode === "register") {
-        // Register new citizen - prepare data for backend API
+        // Register new citizen - call backend API
         const registrationData = {
           fullname: fullname.trim(),
-          email: email.trim(),
+          email: email.trim().toLowerCase(),
           phone: phone.trim(),
           aadhaar: aadhaar.trim(),
           password,
         };
         
-        // TODO: Call backend /auth/register endpoint
-        // For now, store locally for demo
-        const u = { email, fullname: fullname.trim(), phone, role: "Citizen" };
-        if (remember) localStorage.setItem("cp_user", JSON.stringify(u));
-        else          sessionStorage.setItem("cp_user", JSON.stringify(u));
+        const response = await registerUser(registrationData);
         setStatus("success");
-        setTimeout(() => setUser(u), 700);
+        
+        // Redirect to dashboard after successful registration
+        setTimeout(() => {
+          navigate('/dashboard', { replace: true });
+        }, 700);
+        
       } else {
-        // Login
-        const match = DEMO_USERS[email.toLowerCase()];
-        if (match && match.password === password && match.role === role) {
-          const u = { email, name: match.name, role: match.role };
-          if (remember) localStorage.setItem("cp_user", JSON.stringify(u));
-          else          sessionStorage.setItem("cp_user", JSON.stringify(u));
-          setStatus("success");
-          setTimeout(() => setUser(u), 700);
-        } else {
-          setStatus("error");
-          setErrors({ auth: "Invalid credentials or role mismatch. Try the demo hints." });
-          setTimeout(() => setStatus("idle"), 3000);
-        }
+        // Login - call backend API
+        const credentials = {
+          email: email.trim().toLowerCase(),
+          password,
+        };
+        
+        const response = await loginUser(credentials);
+        setStatus("success");
+        
+        // Redirect to dashboard after successful login
+        setTimeout(() => {
+          navigate('/dashboard', { replace: true });
+        }, 700);
       }
-    }, 1400);
+    } catch (error) {
+      console.error('Authentication error:', error);
+      setStatus("error");
+      setErrors({ 
+        auth: error.message || 
+              (mode === "register" ? "Registration failed. Please try again." : "Invalid credentials. Please check your email and password.") 
+      });
+      setTimeout(() => setStatus("idle"), 3000);
+    }
   };
 
   const handleLogout = () => {
+    // Clear all session data
     sessionStorage.removeItem("cp_user");
     localStorage.removeItem("cp_user");
-    setUser(null); setStatus("idle"); setEmail(""); setPassword(""); setFullname(""); setPhone(""); setAadhaar(""); setConfirmPw(""); setErrors({}); setMode("login");
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("user");
+    
+    // Reset form state
+    setUser(null); 
+    setStatus("idle"); 
+    setEmail(""); 
+    setPassword(""); 
+    setFullname(""); 
+    setPhone(""); 
+    setAadhaar(""); 
+    setConfirmPw(""); 
+    setErrors({}); 
+    setMode("login");
+    
+    // Redirect to login
+    navigate('/login', { replace: true });
   };
 
   const toggleMode = () => {

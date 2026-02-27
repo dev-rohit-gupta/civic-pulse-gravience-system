@@ -6,6 +6,7 @@ import { checkForDuplicateComplaintService } from "./duplicate.check.js";
 import { getComplaintsService } from "./complaint.js";
 import { uploadToS3 } from "./aws.service.js";
 import { generateComplaintImageKey } from "@civic-pulse/utils";
+import { createActivityLogService } from "./activity.service.js";
 
 export async function registerComplaintService(
   citizen: string,
@@ -32,7 +33,7 @@ export async function registerComplaintService(
     return duplicate?.toObject();
   }
 
-  const { isDuplicate, duplicateId, semanticVector } = checkForDuplicateComplaintService(
+  const { isDuplicate, duplicateId, semanticVector } = await checkForDuplicateComplaintService(
     complaintData,
     existingComplaints
   );
@@ -54,6 +55,12 @@ export async function registerComplaintService(
     image: imageKey,
   });
   await newComplaintDoc.save();
+
+  // Log activity
+  await createActivityLogService(
+    citizen,
+    `Complaint Created: ${complaintData.title} - Category: ${analysis.category}`
+  ).catch(err => console.error("Failed to log activity:", err));
 
   return newComplaintDoc.toObject();
 }

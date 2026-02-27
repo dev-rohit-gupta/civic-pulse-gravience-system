@@ -12,18 +12,29 @@ const EscalationHistorySchema = z.object({
 });
 
 export const ComplaintSchema = z.object({
-  citizen: UserSchema,
+  id: z.string().optional(), // Public submission ID
+  citizen: UserSchema.optional(),
   title: z.string().min(5).max(200),
   description: z.string().min(10).max(2000),
-  image: urlSchema,
+  image: urlSchema.optional(),
   location: z.object({
     coordinates: z.tuple([z.number(), z.number()]), // [lng, lat]
-  }),
+  }).optional(),
   category: z.enum(["Road", "Water", "Electricity", "Garbage", "Other"]),
+  // Public submission fields
+  isPublicSubmission: z.boolean().default(false).optional(),
+  citizenName: z.string().optional(),
+  citizenPhone: z.string().optional(),
+  citizenAadhaar: z.string().optional(),
+  citizenEmail: z.string().optional(),
+  city: z.string().optional(),
+  ward: z.string().optional(),
+  address: z.string().optional(),
+  priority: z.enum(["low", "medium", "high"]).default("medium"),
   supporters: z.array(z.string()).nullable(),
   semanticVector: z.array(z.number()).nullable(),
   canonicalHash: z.string().nullable(),
-  department: DepartmentSchema,
+  department: DepartmentSchema.optional(),
   operator: UserSchema.nullable(),
   status: z
     .enum([
@@ -35,7 +46,7 @@ export const ComplaintSchema = z.object({
         "rejected",
       ])
     .default("pending"),
-  priorityScore: z.number().default(0),
+  priorityScore: z.number().default(0).optional(),
   resolvedAt: z.date().nullable(),
   closedAt: z.date().nullable(),
   escalationLevel: z.number().default(0),

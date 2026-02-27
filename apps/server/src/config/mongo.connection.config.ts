@@ -9,5 +9,5 @@ export const options: ConnectOptions = {
   retryWrites: true,
   retryReads: true,
   compressors: ["zlib"],
-  autoIndex: false,
+  autoIndex: process.env.NODE_ENV !== "production", // Enable in dev, disable in prod
 };

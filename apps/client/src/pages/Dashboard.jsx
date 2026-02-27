@@ -5,7 +5,7 @@ import { getPriorityBadge, getStatusBadge } from '../utils/helpers';
 
 const Dashboard = () => {
 
-  const { complaints, activityLog, operators, getDashboardStats , role} = useApp();
+  const { complaints, activityLog, operators, getDashboardStats, role, currentUser, getFilteredActivityLog } = useApp();
   const stats = getDashboardStats();
 
   return (
@@ -27,10 +27,21 @@ const Dashboard = () => {
           </div>
         </div>}
 
-       { role === "citizen" && <div className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow">
+        {role === "department" && <div className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-gray-600 text-sm">Department Operators</p>
+              <p className="text-3xl font-bold text-gray-900 mt-2">{stats.totalOperators}</p>
+              <p className="text-green-600 text-xs mt-2">✓ {stats.activeOperators} active</p>
+            </div>
+            <Users className="w-10 h-10 text-blue-500 opacity-20" />
+          </div>
+        </div>}
+
+        {role === "citizen" && <div className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow">
            <div className="flex justify-between items-start">
             <div>
-              <p className="text-gray-600 text-sm">Total Complaints</p>
+              <p className="text-gray-600 text-sm">My Total Complaints</p>
               <p className="text-3xl font-bold text-gray-900 mt-2">{stats.totalComplaints}</p>
               <p className="text-green-600 text-xs mt-2">↑ {stats.complaintsResolved} resolved</p>
             </div>
@@ -38,10 +49,21 @@ const Dashboard = () => {
           </div>
         </div>}
 
+        {role === "operator" && <div className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow">
+           <div className="flex justify-between items-start">
+            <div>
+              <p className="text-gray-600 text-sm">Assigned to Me</p>
+              <p className="text-3xl font-bold text-gray-900 mt-2">{stats.totalComplaints}</p>
+              <p className="text-green-600 text-xs mt-2">✓ {stats.complaintsResolved} completed</p>
+            </div>
+            <CheckCircle className="w-10 h-10 text-blue-500 opacity-20" />
+          </div>
+        </div>}
+
         <div className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-gray-600 text-sm">Pending Complaints</p>
+              <p className="text-gray-600 text-sm">{role === "citizen" ? "My Pending" : role === "operator" ? "My Pending" : "Pending Complaints"}</p>
               <p className="text-3xl font-bold text-gray-900 mt-2">{stats.complaintsPending}</p>
               <p className="text-orange-600 text-xs mt-2">Awaiting action</p>
             </div>
@@ -52,7 +74,7 @@ const Dashboard = () => {
         <div className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-gray-600 text-sm">In Progress</p>
+              <p className="text-gray-600 text-sm">{role === "citizen" ? "My In Progress" : role === "operator" ? "Working On" : "In Progress"}</p>
               <p className="text-3xl font-bold text-gray-900 mt-2">{stats.complaintsWorking}</p>
               <p className="text-blue-600 text-xs mt-2">Being worked on</p>
             </div>
@@ -63,9 +85,9 @@ const Dashboard = () => {
         <div className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-gray-600 text-sm">Resolved</p>
+              <p className="text-gray-600 text-sm">{role === "citizen" ? "My Resolved" : role === "operator" ? "Completed" : "Resolved"}</p>
               <p className="text-3xl font-bold text-gray-900 mt-2">{stats.complaintsResolved}</p>
-              <p className="text-green-600 text-xs mt-2">Completion rate</p>
+              <p className="text-green-600 text-xs mt-2">{role === "operator" ? "Great work!" : "Completion rate"}</p>
             </div>
             <CheckCircle className="w-10 h-10 text-green-500 opacity-20" />
           </div>
@@ -77,30 +99,44 @@ const Dashboard = () => {
       <div className="flex flex-col gap-6 grow">
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Complaints</h2>
-          <div className="space-y-3">
-            {complaints.slice(0, 5).map((complaint) => (
-              <div key={complaint.id} className="flex items-start justify-between  p-3 bg-gray-50 rounded-lg hover:bg-gray-100">
-                <div className="flex items-center justify-between grow">
-                  <span className="font-semibold text-gray-900">{complaint.id}</span>
-                  <span className="text-sm text-gray-600">{complaint.description}</span>
-                  <div className="flex gap-2 end-safe items-center justify-center">
-                    <span className={`text-xs px-2 py-1 rounded ${getPriorityBadge(complaint.priority)}`}>
-                      {complaint.priority}
-                    </span>
-                    <span className={`text-xs px-2 py-1 rounded ${getStatusBadge(complaint.status)}`}>
-                      {complaint.status}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left py-3 px-4 font-semibold text-gray-900">ID</th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-900">Description</th>
+                  <th className="text-center py-3 px-4 font-semibold text-gray-900">Priority</th>
+                  <th className="text-center py-3 px-4 font-semibold text-gray-900">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {complaints.slice(0, 5).map((complaint) => (
+                  <tr key={complaint.id} className="hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0">
+                    <td className="py-3 px-4 font-semibold text-gray-900">{complaint.id}</td>
+                    <td className="py-3 px-4 text-sm text-gray-600">{complaint.description}</td>
+                    <td className="py-3 px-4 text-center">
+                      <span className={`text-xs px-2 py-1 rounded ${getPriorityBadge(complaint.priority)}`}>
+                        {complaint.priority}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      <span className={`text-xs px-2 py-1 rounded ${getStatusBadge(complaint.status)}`}>
+                        {complaint.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
 
-       {role != "citizen" && <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Activity</h2>
+       {role !== "citizen" && <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">
+            {role === "operator" ? "My Recent Activity" : "Recent Activity"}
+          </h2>
           <div className="space-y-3">
-            {activityLog.slice(0, 5).map((activity) => (
+            {getFilteredActivityLog().slice(0, 5).map((activity) => (
               <div key={activity.id} className="pb-3 border-b border-gray-100 last:border-0">
                 <div className="flex items-start gap-3">
                   <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center shrink-0">

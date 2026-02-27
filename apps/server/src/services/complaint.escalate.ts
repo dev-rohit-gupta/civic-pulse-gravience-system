@@ -3,6 +3,7 @@ import { UserModel } from "../model/user.model.js";
 import { ApiError } from "@civic-pulse/utils";
 import mongoose from "mongoose";
 import { sendEscalationEmail } from "./email.service.js";
+import { createActivityLogService } from "./activity.service.js";
 
 interface EscalateComplaintData {
   reason: string;
@@ -62,15 +63,27 @@ export async function escalateComplaintService(
       nextHandlerName = (departmentUser as any).fullname || "Department User";
     }
   } else if (userRole === "department") {
-    // Department escalates to admin
+    // Department escalates to admin of SAME department
     toRole = "admin";
-    // Find an admin user
-    const adminUser = await UserModel.findOne({ role: "admin" }).select("_id email fullname");
+    
+    // Find admin user assigned to this complaint's department
+    const adminUser = await UserModel.findOne({ 
+      role: "admin",
+      department: complaint.department // Find admin of this specific department
+    }).select("_id email fullname");
     
     if (adminUser) {
       nextHandler = adminUser._id as mongoose.Types.ObjectId;
       nextHandlerEmail = (adminUser as any).email || "";
       nextHandlerName = (adminUser as any).fullname || "Admin User";
+    } else {
+      // Fallback: If no department-specific admin, find any admin
+      const fallbackAdmin = await UserModel.findOne({ role: "admin" }).select("_id email fullname");
+      if (fallbackAdmin) {
+        nextHandler = fallbackAdmin._id as mongoose.Types.ObjectId;
+        nextHandlerEmail = (fallbackAdmin as any).email || "";
+        nextHandlerName = (fallbackAdmin as any).fullname || "Admin User";
+      }
     }
   } else {
     throw new ApiError(400, "Cannot determine escalation path");
@@ -102,6 +115,12 @@ export async function escalateComplaintService(
     },
     { new: true }
   );
+
+  // Log escalation activity
+  await createActivityLogService(
+    userId,
+    `Complaint ${complaintId} escalated from ${userRole} to ${toRole} - Reason: ${escalationData.reason.substring(0, 100)}${escalationData.reason.length > 100 ? '...' : ''}`
+  ).catch(err => console.error("Failed to log activity:", err));
 
   // Send email notification to the next level (non-recursive - only one level up)
   if (nextHandlerEmail) {

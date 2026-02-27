@@ -34,8 +34,8 @@ const createTransporter = () => {
     port: 587,
     secure: false,
     auth: {
-      user: process.env.ETHEREAL_USER || "ethereal.user@ethereal.email",
-      pass: process.env.ETHEREAL_PASS || "ethereal_password",
+      user: process.env.ETHEREAL_USER || "cornelius51@ethereal.email",
+      pass: process.env.ETHEREAL_PASS || "xXRgB3QEg6YHN9BwRv",
     },
   });
 };

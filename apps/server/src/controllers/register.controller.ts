@@ -17,6 +17,6 @@ export const registerUserController = asyncHandler(async (req: Request, res: Res
     throw new ApiError(403, "User role not found", false);
   }
 
-  const { user, accessToken } = await registerUserService(userData, userId,req.user?.role );
+  const { user, accessToken } = await registerUserService(userData, userId, req.user?.role);
   res.status(201).json(new ApiResponse({ user, accessToken }, "User registered successfully", 201));
 });

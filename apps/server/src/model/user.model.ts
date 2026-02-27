@@ -54,7 +54,7 @@ UserSchema.methods.isPasswordCorrect = async function (password: string) {
 
 UserSchema.methods.generateAccessToken = async function () {
   const secret = encoder.encode(process.env.ACCESS_TOKEN_SECRET!);
-
+  console.log("Generating access token for user:", this._id, "with role:", this.role);
   return await new SignJWT({
     id: this._id.toString(),
     role: this.role,

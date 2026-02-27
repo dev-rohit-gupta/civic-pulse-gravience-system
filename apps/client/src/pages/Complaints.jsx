@@ -1,12 +1,14 @@
 import React, { useState } from "react";
-import { Plus, Search, Edit2, Trash2 } from "lucide-react";
+import { Plus, Search, Edit2, Trash2, ArrowUp, RefreshCw } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { getPriorityBadge, getStatusBadge } from "../utils/helpers";
 import AddComplaintModal from "../components/modals/AddComplaintModal";
 import EditComplaintModal from "../components/modals/EditComplaintModal";
+import UpdateComplaintStatusModal from "../components/modals/UpdateComplaintStatusModal";
+import EscalateComplaintModal from "../components/modals/EscalateComplaintModal";
 
 const Complaints = () => {
-  const { getFilteredComplaints, handleDeleteComplaint, activityLog ,role} = useApp();
+  const { getFilteredComplaints, handleDeleteComplaint, role } = useApp();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
@@ -23,16 +25,25 @@ const Complaints = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-4xl font-bold text-gray-900">Complaint Assignment</h1>
-          <p className="text-gray-500 mt-2">Track and manage complaints</p>
+          <h1 className="text-4xl font-bold text-gray-900">
+            {role === "citizen" ? "My Complaints" : "Complaint Management"}
+          </h1>
+          <p className="text-gray-500 mt-2">
+            {role === "citizen" && "Track your submitted complaints"}
+            {role === "operator" && "Manage assigned complaints"}
+            {role === "department" && "Assign and manage department complaints"}
+            {role === "admin" && "Full system complaint management"}
+          </p>
         </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          Add Complaint
-        </button>
+        {(role === "citizen" || role === "admin") && (
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Add Complaint
+          </button>
+        )}
       </div>
 
       <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-4">
@@ -83,16 +94,12 @@ const Complaints = () => {
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
               <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">ID</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
-                Description
-              </th>
+              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Description</th>
               <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Category</th>
               <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Priority</th>
               <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Status</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
-                Assigned To
-              </th>
-              {role === "department" && <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Actions</th>}
+              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Assigned To</th>
+              {role !== "citizen" && <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Actions</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
@@ -116,31 +123,111 @@ const Complaints = () => {
                   </span>
                 </td>
                 <td className="px-6 py-4 text-gray-700">{complaint.assignedTo || "Unassigned"}</td>
-                <td className="px-6 py-4 flex gap-2">
-                  {!complaint.assignedTo && role === "department" && (
-                    <button
-                      onClick={() => {
-                        setSelectedComplaint(complaint);
-                        setShowEditModal(true);
-                      }}
-                      className="p-2 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition-colors"
-                    >
-                      Assign
-                    </button>
-                  )}
-                  {complaint.assignedTo && role === "department" && (
-                    <button
-                      onClick={() => {
-                        if (window.confirm("Are you sure you want to delete this complaint?")) {
-                          handleDeleteComplaint(complaint.id);
-                        }
-                      }}
-                      className="p-2 bg-red-100 text-red-600 rounded hover:bg-red-200 transition-colors"
-                    >
-                      Re-assign
-                    </button>
-                  )}
-                </td>
+                {role !== "citizen" && (
+                  <td className="px-6 py-4">
+                    <div className="flex gap-2">
+                      {/* ADMIN ACTIONS */}
+                      {role === "admin" && (
+                        <>
+                          <button
+                            onClick={() => {
+                              setSelectedComplaint(complaint);
+                              setShowEditModal(true);
+                            }}
+                            className="p-2 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition-colors"
+                            title="Edit/Assign"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedComplaint(complaint);
+                              setShowStatusModal(true);
+                            }}
+                            className="p-2 bg-green-100 text-green-600 rounded hover:bg-green-200 transition-colors"
+                            title="Update Status"
+                          >
+                            <RefreshCw className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (window.confirm("Are you sure you want to delete this complaint?")) {
+                                handleDeleteComplaint(complaint.id);
+                              }
+                            }}
+                            className="p-2 bg-red-100 text-red-600 rounded hover:bg-red-200 transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
+
+                      {/* DEPARTMENT ACTIONS */}
+                      {role === "department" && (
+                        <>
+                          {!complaint.assignedTo ? (
+                            <button
+                              onClick={() => {
+                                setSelectedComplaint(complaint);
+                                setShowEditModal(true);
+                              }}
+                              className="px-3 py-1 text-sm bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition-colors"
+                            >
+                              Assign
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                setSelectedComplaint(complaint);
+                                setShowEditModal(true);
+                              }}
+                              className="px-3 py-1 text-sm bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition-colors"
+                            >
+                              Re-assign
+                            </button>
+                          )}
+                          <button
+                            onClick={() => {
+                              setSelectedComplaint(complaint);
+                              setShowStatusModal(true);
+                            }}
+                            className="p-2 bg-purple-100 text-purple-600 rounded hover:bg-purple-200 transition-colors"
+                            title="Override Status"
+                          >
+                            <RefreshCw className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
+
+                      {/* OPERATOR ACTIONS */}
+                      {role === "operator" && (
+                        <>
+                          <button
+                            onClick={() => {
+                              setSelectedComplaint(complaint);
+                              setShowStatusModal(true);
+                            }}
+                            className="px-3 py-1 text-sm bg-green-100 text-green-600 rounded hover:bg-green-200 transition-colors flex items-center gap-1"
+                          >
+                            <RefreshCw className="w-3 h-3" />
+                            Update
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedComplaint(complaint);
+                              setShowEscalateModal(true);
+                            }}
+                            className="px-3 py-1 text-sm bg-orange-100 text-orange-600 rounded hover:bg-orange-200 transition-colors flex items-center gap-1"
+                          >
+                            <ArrowUp className="w-3 h-3" />
+                            Escalate
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>

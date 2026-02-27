@@ -2,13 +2,13 @@ import { SystemRoleModel } from "../model/role.model.js";
 
 // Get all roles
 export async function getRolesService() {
-  const roles = await SystemRoleModel.find().select("-_id -__v").lean();
+  const roles = await SystemRoleModel.find().select("  -__v").lean();
   return roles;
 }
 
 // Get a single role by id
 export async function getRoleByIdService(id: string) {
-  const role = await SystemRoleModel.findOne({ id }).select("-_id -__v").lean();
+  const role = await SystemRoleModel.findOne({ id }).select("  -__v").lean();
   if (!role) {
     throw new Error("Role not found");
   }

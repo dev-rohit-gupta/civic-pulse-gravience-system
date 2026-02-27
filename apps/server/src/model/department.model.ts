@@ -23,8 +23,8 @@ const DepartmentSchema = new mongoose.Schema<Department>({
         maxlength : 1000
     },
    category : {
-        type : String,
-        enum : ["Road", "Water", "Electricity", "Garbage", "Other"],
+        type : mongoose.Schema.Types.ObjectId,
+        ref : "Category",
         required : true
     },
 });

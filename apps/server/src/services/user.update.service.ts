@@ -13,7 +13,7 @@ export async function updateUserService(
 
   const updatedUserData = deepMerge<User>(user.toObject(), updateData);
   const updatedUser = await UserModel.findByIdAndUpdate(userId, updatedUserData, { new: true })
-    .select("-password -_id -__v")
+    .select("-password   -__v")
     .lean();
 
   return updatedUser;

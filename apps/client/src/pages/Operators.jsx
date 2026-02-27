@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Plus, Search, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Eye } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import AddOperatorModal from '../components/modals/AddOperatorModal';
 import EditOperatorModal from '../components/modals/EditOperatorModal';
 
 const Operators = () => {
-  const { getFilteredOperators, handleDeleteOperator } = useApp();
+  const { getFilteredOperators, handleDeleteOperator, role } = useApp();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedOperator, setSelectedOperator] = useState(null);
@@ -18,15 +18,21 @@ const Operators = () => {
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-4xl font-bold text-gray-900">Operators</h1>
-          <p className="text-gray-500 mt-2">Manage and view all registered operators</p>
+          <p className="text-gray-500 mt-2">
+            {role === "admin" && "Manage all system operators"}
+            {role === "department" && "Manage your department operators"}
+            {role === "operator" && "View your department colleagues"}
+          </p>
         </div>
-        <button 
-          onClick={() => setShowAddModal(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          Add Operator
-        </button>
+        {(role === "admin" || role === "department") && (
+          <button 
+            onClick={() => setShowAddModal(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Add Operator
+          </button>
+        )}
       </div>
 
       <div className="bg-white rounded-lg border border-gray-200 p-4">
@@ -69,25 +75,42 @@ const Operators = () => {
                   </span>
                 </td>
                 <td className="px-6 py-4 flex gap-2">
-                  <button
-                    onClick={() => {
-                      setSelectedOperator(operator);
-                      setShowEditModal(true);
-                    }}
-                    className="p-2 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition-colors"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (window.confirm('Are you sure you want to delete this operator?')) {
-                        handleDeleteOperator(operator.id);
-                      }
-                    }}
-                    className="p-2 bg-red-100 text-red-600 rounded hover:bg-red-200 transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {role === "operator" ? (
+                    <button
+                      onClick={() => {
+                        setSelectedOperator(operator);
+                        setShowEditModal(true);
+                      }}
+                      className="p-2 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition-colors"
+                      title="View Details"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => {
+                          setSelectedOperator(operator);
+                          setShowEditModal(true);
+                        }}
+                        className="p-2 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition-colors"
+                        title="Edit"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (window.confirm('Are you sure you want to delete this operator?')) {
+                            handleDeleteOperator(operator.id);
+                          }
+                        }}
+                        className="p-2 bg-red-100 text-red-600 rounded hover:bg-red-200 transition-colors"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </>
+                  )}
                 </td>
               </tr>
             ))}

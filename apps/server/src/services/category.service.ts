@@ -2,13 +2,13 @@ import { CategoryModel } from "../model/category.model.js";
 
 // Get all categories
 export async function getCategoriesService() {
-  const categories = await CategoryModel.find().select("-_id -__v").lean();
+  const categories = await CategoryModel.find().select("  -__v").lean();
   return categories;
 }
 
 // Get a single category by id
 export async function getCategoryByIdService(id: string) {
-  const category = await CategoryModel.findOne({ id }).select("-_id -__v").lean();
+  const category = await CategoryModel.findOne({ id }).select("  -__v").lean();
   if (!category) {
     throw new Error("Category not found");
   }

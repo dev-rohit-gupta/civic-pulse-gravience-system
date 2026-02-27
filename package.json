@@ -47,10 +47,11 @@
     "url": "https://github.com/dev-rohit-gupta/civic-pulse-gravience-system/issues"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/node": "^20.14.0",
     "prettier": "^3.3.3",
     "turbo": "^2.7.4",
-    "typescript": "^5.5.0",
-    "@types/node": "^20.14.0"
+    "typescript": "^5.5.0"
   },
   "packageManager": "npm@11.10.0",
   "homepage": "https://github.com/dev-rohit-gupta/civic-pulse-gravience-system#readme"
