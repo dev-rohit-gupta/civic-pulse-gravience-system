@@ -117,8 +117,23 @@ export const AppProvider = ({ children }) => {
 
   // COMPLAINT FUNCTIONS
   const handleAddComplaint = async (complaintForm) => {
-    if (!complaintForm.description || !complaintForm.title) {
-      showNotification('Please fill all required fields', 'error');
+    // Validate required fields
+    if (!complaintForm.title || !complaintForm.title.trim()) {
+      showNotification('Title is required', 'error');
+      return false;
+    }
+    if (!complaintForm.description || !complaintForm.description.trim()) {
+      showNotification('Description is required', 'error');
+      return false;
+    }
+    
+    // Validate field lengths
+    if (complaintForm.title.trim().length < 5) {
+      showNotification('Title must be at least 5 characters', 'error');
+      return false;
+    }
+    if (complaintForm.description.trim().length < 10) {
+      showNotification('Description must be at least 10 characters', 'error');
       return false;
     }
     
@@ -126,7 +141,9 @@ export const AppProvider = ({ children }) => {
       const response = await registerComplaint(complaintForm);
       await fetchComplaints(); // Refresh complaints list
       await fetchActivityLogs(); // Refresh activity logs
-      showNotification('Complaint registered successfully!');
+      
+      // Show success message from backend (includes AI processing info)
+      showNotification(response.message || 'Complaint registered successfully!');
       return true;
     } catch (error) {
       console.error('Error registering complaint:', error);

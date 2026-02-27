@@ -4,6 +4,10 @@ import {
   updateOperatorService,
   deleteOperatorService,
   getUserProfileService,
+  getDepartmentAdminsService,
+  createDepartmentAdminService,
+  updateDepartmentAdminService,
+  deleteDepartmentAdminService,
 } from "../services/user.service.js";
 import { Request, Response } from "express";
 import { asyncHandler } from "@civic-pulse/utils";
@@ -114,3 +118,107 @@ export const getUserProfileController = asyncHandler(async (req: Request, res: R
     new ApiResponse(profile, "Profile fetched successfully", 200)
   );
 });
+
+// Department Admin Controllers
+const createDepartmentAdminSchema = z.object({
+  fullname: z.string().min(2).max(100),
+  email: z.string().email(),
+  phone: z.string().min(10).max(15),
+  password: z.string().min(8),
+  aadhaar: z.string().length(12),
+  department: z.string(),
+});
+
+const updateDepartmentAdminSchema = z.object({
+  fullname: z.string().min(2).max(100).optional(),
+  email: z.string().email().optional(),
+  phone: z.string().min(10).max(15).optional(),
+  department: z.string().optional(),
+});
+
+export const getDepartmentAdminsController = asyncHandler(async (req: Request, res: Response) => {
+  const userRole = req.user?.role;
+
+  if (!userRole) {
+    throw new ApiError(401, "Unauthorized");
+  }
+
+  if (userRole !== "admin") {
+    throw new ApiError(403, "Only system administrators can view department admins");
+  }
+
+  const searchQuery = req.query.search as string | undefined;
+
+  const admins = await getDepartmentAdminsService(searchQuery);
+
+  return res.status(200).json(
+    new ApiResponse(admins, "Department admins fetched successfully", 200)
+  );
+});
+
+export const createDepartmentAdminController = asyncHandler(async (req: Request, res: Response) => {
+  const userRole = req.user?.role;
+
+  if (!userRole) {
+    throw new ApiError(401, "Unauthorized");
+  }
+
+  if (userRole !== "admin") {
+    throw new ApiError(403, "Only system administrators can create department admins");
+  }
+
+  const parsedBody = createDepartmentAdminSchema.safeParse(req.body);
+  if (!parsedBody.success) {
+    throw new ApiError(400, parsedBody.error.issues[0].message);
+  }
+
+  const admin = await createDepartmentAdminService(parsedBody.data);
+
+  return res.status(201).json(
+    new ApiResponse(admin, "Department admin created successfully", 201)
+  );
+});
+
+export const updateDepartmentAdminController = asyncHandler(async (req: Request, res: Response) => {
+  const adminId = req.params.id;
+  const userRole = req.user?.role;
+
+  if (!userRole) {
+    throw new ApiError(401, "Unauthorized");
+  }
+
+  if (userRole !== "admin") {
+    throw new ApiError(403, "Only system administrators can update department admins");
+  }
+
+  const parsedBody = updateDepartmentAdminSchema.safeParse(req.body);
+  if (!parsedBody.success) {
+    throw new ApiError(400, parsedBody.error.issues[0].message);
+  }
+
+  const admin = await updateDepartmentAdminService(adminId, parsedBody.data);
+
+  return res.status(200).json(
+    new ApiResponse(admin, "Department admin updated successfully", 200)
+  );
+});
+
+export const deleteDepartmentAdminController = asyncHandler(async (req: Request, res: Response) => {
+  const adminId = req.params.id;
+  const userRole = req.user?.role;
+
+  if (!userRole) {
+    throw new ApiError(401, "Unauthorized");
+  }
+
+  if (userRole !== "admin") {
+    throw new ApiError(403, "Only system administrators can delete department admins");
+  }
+
+  const result = await deleteDepartmentAdminService(adminId);
+
+  return res.status(200).json(
+    new ApiResponse(result, "Department admin deleted successfully", 200)
+  );
+});
+

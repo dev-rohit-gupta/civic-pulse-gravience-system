@@ -19,7 +19,7 @@ complaintRouter.get("/", requireAuth, getAllComplaintsController);
 complaintRouter.get("/:id", requireAuth, getComplaintDetailsController);
 
 // Register new complaint
-complaintRouter.post("/register", uploader.single("file"), registerComplaintController);
+complaintRouter.post("/register", requireAuth, uploader.single("file"), registerComplaintController);
 
 // Update complaint status - Department can override operator's status
 complaintRouter.patch("/:id", requireAuth, updateComplaintController);

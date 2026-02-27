@@ -7,20 +7,24 @@ import { getComplaintsService } from "./complaint.js";
 import { uploadToS3 } from "./aws.service.js";
 import { generateComplaintImageKey } from "@civic-pulse/utils";
 import { createActivityLogService } from "./activity.service.js";
+import { ApiError } from "@civic-pulse/utils";
 
 export async function registerComplaintService(
   citizen: string,
   complaintData: newComplaint,
-  imageBuffer: Buffer
+  imageBuffer?: Buffer
 ) {
   // Analyze complaint for spam
   const { isSpam, analysis } = await analyzeComplaintForSpamService(complaintData, imageBuffer);
   if (isSpam) {
-    throw new Error("Complaint detected as spam");
+    throw new ApiError(400, "Complaint detected as spam",false);
   }
 
-  // Fetch existing complaints in the vicinity to check for duplicates
-  const existingComplaints = await getComplaintsService(complaintData.location.coordinates, 100);
+  // Fetch existing complaints in the vicinity to check for duplicates (if location provided)
+  let existingComplaints: any[] = [];
+  if (complaintData.location?.coordinates) {
+    existingComplaints = await getComplaintsService(complaintData.location.coordinates, 100);
+  }
 
   const canonicalHash = createCanonicalHash(Object.values(analysis).join("|"));
   const duplicateWithHash = existingComplaints.find((c) => c.canonicalHash === canonicalHash);
@@ -32,6 +36,7 @@ export async function registerComplaintService(
     await duplicate?.save();
     return duplicate?.toObject();
   }
+  console.log()
 
   const { isDuplicate, duplicateId, semanticVector } = await checkForDuplicateComplaintService(
     complaintData,
@@ -44,15 +49,19 @@ export async function registerComplaintService(
     return duplicate?.toObject();
   }
 
-  const imageKey = generateComplaintImageKey(citizen, complaintData.title);
-  await uploadToS3(imageBuffer, imageKey);
+  let imageKey: string | undefined;
+  if (imageBuffer) {
+    imageKey = generateComplaintImageKey(citizen, complaintData.title);
+    await uploadToS3(imageBuffer, imageKey);
+  }
+  
   const newComplaintDoc = new ComplaintModel({
     ...complaintData,
     citizen,
     category: analysis.category,
     canonicalHash,
     semanticVector,
-    image: imageKey,
+    ...(imageKey && { image: imageKey }),
   });
   await newComplaintDoc.save();
 

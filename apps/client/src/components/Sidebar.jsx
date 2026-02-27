@@ -12,6 +12,7 @@ import {
   X,
   Building2,
   FolderKanban,
+  UserCog,
 } from "lucide-react";
 import { useApp } from "../context/AppContext";
 
@@ -27,6 +28,7 @@ const Sidebar = () => {
       roles: ["department", "citizen", "operator", "admin"],
     },
     { icon: Building2, label: "Departments", path: "/departments", roles: ["admin"] },
+    { icon: UserCog, label: "Department Admins", path: "/department-admins", roles: ["admin"] },
     { icon: FolderKanban, label: "Categories", path: "/categories", roles: ["admin"] },
     {
       icon: Users,

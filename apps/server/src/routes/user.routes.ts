@@ -5,6 +5,10 @@ import {
   updateOperatorController,
   deleteOperatorController,
   getUserProfileController,
+  getDepartmentAdminsController,
+  createDepartmentAdminController,
+  updateDepartmentAdminController,
+  deleteDepartmentAdminController,
 } from "../controllers/user.controller.js";
 import { requireAuth } from "../middleware/auth.middleware.js";
 
@@ -24,3 +28,10 @@ userRouter.patch("/operator/:id", requireAuth, updateOperatorController);
 
 // Delete operator (admin only)
 userRouter.delete("/operator/:id", requireAuth, deleteOperatorController);
+
+// Department Admin routes (admin only)
+userRouter.get("/department-admins", requireAuth, getDepartmentAdminsController);
+userRouter.post("/department-admin", requireAuth, createDepartmentAdminController);
+userRouter.patch("/department-admin/:id", requireAuth, updateDepartmentAdminController);
+userRouter.delete("/department-admin/:id", requireAuth, deleteDepartmentAdminController);
+

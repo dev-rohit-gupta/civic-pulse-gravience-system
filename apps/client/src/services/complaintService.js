@@ -18,10 +18,20 @@ export const getComplaintDetails = async (complaintId) => {
 
 export const registerComplaint = async (complaintData) => {
   const formData = new FormData();
-  formData.append('title', complaintData.title);
-  formData.append('description', complaintData.description);
-  formData.append('location', JSON.stringify(complaintData.location));
-  if (complaintData.image) formData.append('file', complaintData.image);
+  formData.append('title', complaintData.title.trim());
+  formData.append('description', complaintData.description.trim());
+  
+  // Only include location if it has valid data
+  if (complaintData.location) {
+    // Only send location if we have either address or coordinates
+    if (complaintData.location.address || complaintData.location.coordinates) {
+      formData.append('location', JSON.stringify(complaintData.location));
+    }
+  }
+  
+  if (complaintData.image) {
+    formData.append('file', complaintData.image);
+  }
   
   return api.post('/api/complaint/register', formData);
 };

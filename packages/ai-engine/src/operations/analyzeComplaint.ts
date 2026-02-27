@@ -8,9 +8,9 @@ import { safeParseAIJson } from "@civic-pulse/utils";
 const config: GenerateContentConfig = {
   systemInstruction: SYSTEM_INSTRUCTION.spamDetection,
   responseMimeType: "application/json",
-  thinkingConfig: {
-    thinkingLevel: ThinkingLevel.HIGH,
-  },
+  temperature: 0.2,
+  topK: 1,
+  topP: 0.1,
 };
 
 type results = {
@@ -22,18 +22,21 @@ type results = {
     };
   };
 
-export async function validateAndAnalyzeComplaint(complaint: newComplaint, image: Buffer) : Promise<results> {
+export async function validateAndAnalyzeComplaint(complaint: newComplaint, image?: Buffer) : Promise<results> {
   const inputs: EngineInput[] = [
     { type: "text", value: complaint.title },
     { type: "text", value: complaint.description },
-    { type: "file", buffer: image, mimeType: "image/jpeg" },
   ];
+  
+  if (image) {
+    inputs.push({ type: "file", buffer: image, mimeType: "image/jpeg" });
+  }
 
   const instructions = SYSTEM_INSTRUCTION.spamDetection;
   const ai = createGeminiClient();
   const response = await runEngine({
     ai,
-    model: "gemini-3-flash",
+    model: process.env.GOOGLE_AI_MODEL || "gemini-2.5-flash",
     inputs,
     config,
   });

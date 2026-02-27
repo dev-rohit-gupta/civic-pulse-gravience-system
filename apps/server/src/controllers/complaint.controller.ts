@@ -14,20 +14,23 @@ const bodySchema = ComplaintSchema.pick({
 });
 
 export const registerComplaintController = asyncHandler(async (req: Request, res: Response) => {
-  const { title, description, location } = bodySchema.parse(req.body);
   const citizen = req.user?.id;
   if (!citizen) {
     throw new ApiError(401, "Unauthorized");
   }
 
-  if (!location || !location.coordinates) {
-    throw new ApiError(400, "Location is required for complaint registration");
+  // Parse location if sent as JSON string from FormData
+  let parsedBody = { ...req.body };
+  if (typeof req.body.location === 'string') {
+    try {
+      parsedBody.location = JSON.parse(req.body.location);
+    } catch (e) {
+      parsedBody.location = undefined;
+    }
   }
 
+  const { title, description, location } = bodySchema.parse(parsedBody);
   const image = req.file?.buffer;
-  if (!image) {
-    throw new ApiError(400, "Image is required");
-  }
 
   const complaint = await registerComplaintService(
     citizen,
@@ -39,7 +42,13 @@ export const registerComplaintController = asyncHandler(async (req: Request, res
     image
   );
 
-  return res.status(201).json(new ApiResponse(null, "Complaint registered successfully", 201));
+  return res.status(201).json(
+    new ApiResponse(
+      { complaint }, 
+      "Complaint registered successfully! AI is analyzing and assigning it to the appropriate department.", 
+      201
+    )
+  );
 });
 
 export const getAllComplaintsController = asyncHandler(async (req: Request, res: Response) => {

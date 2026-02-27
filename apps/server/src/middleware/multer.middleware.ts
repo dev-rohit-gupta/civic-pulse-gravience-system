@@ -3,11 +3,7 @@ import { ApiError } from "@civic-pulse/utils";
 
 /* ---------- config ---------- */
 
-const MAX_FILE_SIZE =  256; // 256kb
-
-const ALLOWED_MIME_TYPES = [
-  "image/*", // image/jpeg, image/png, etc.
-];
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 /* ---------- storage ---------- */
 // Using memory storage to keep files in memory as Buffer objects
@@ -15,7 +11,8 @@ const storage = multer.memoryStorage();
 
 /* ---------- file filter ---------- */
 const fileFilter: multer.Options["fileFilter"] = (_req, file, cb) => {
-  if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+  // Check if the mimetype starts with "image/" for broader compatibility
+  if (!file.mimetype.startsWith("image/")) {
     return cb(new ApiError(400, "Invalid file type. Only image files are allowed."));
   }
 

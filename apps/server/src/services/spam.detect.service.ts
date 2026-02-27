@@ -3,7 +3,7 @@ import { validateAndAnalyzeComplaint } from "@civic-pulse/ai-engine";
 
 export async function analyzeComplaintForSpamService(
   newComplaint: newComplaint,
-  imageBuffer: Buffer
+  imageBuffer?: Buffer
 ): Promise<{
   isSpam: boolean;
   analysis: { category: string; priorityScore: number; issue: string };

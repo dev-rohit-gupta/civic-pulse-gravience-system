@@ -7,6 +7,7 @@ import PublicLayout from './layouts/PublicLayout';
 import Dashboard from './pages/Dashboard';
 import Categories from './pages/Categories';
 import Departments from './pages/Departments';
+import DepartmentAdmins from './pages/DepartmentAdmins';
 import Operators from './pages/Operators';
 import Complaints from './pages/Complaints';
 import Activity from './pages/Activity';
@@ -37,6 +38,7 @@ const CivicPulseApp = () => {
         }>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/departments" element={<Departments />} />
+          <Route path="/department-admins" element={<DepartmentAdmins />} />
           <Route path="/categories" element={<Categories />} />
           <Route path="/operators" element={<Operators />} />
           <Route path="/complaints" element={<Complaints />} />

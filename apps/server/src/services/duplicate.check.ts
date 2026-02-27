@@ -76,6 +76,7 @@ export async function checkForDuplicateComplaintService(
   newComplaint: newComplaint,
   existingComplaints: ComplaintDocument[]
 ) {
+  console.log(`Checking for duplicates among ${existingComplaints.length} existing complaints...`);
   try {
     // Combine title and description for better semantic matching
     const newComplaintText = `${newComplaint.title} ${newComplaint.description}`.trim();

@@ -17,10 +17,7 @@ export function errorMiddleware(err: unknown, _req: Request, res: Response, _nex
     }
     console.error("Unexpected Error:", err.message);
 
-    return res.status(500).json({
-      success: false,
-      message: "Internal Server Error",
-    });
+    return res.status(500).json();
   }
 
   // Very rare non-error throw (string, number, etc.)

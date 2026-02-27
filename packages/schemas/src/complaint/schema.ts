@@ -60,7 +60,7 @@ export type Complaint = z.infer<typeof ComplaintSchema>;
 export interface newComplaint {
   title: string;
   description: string;
-  location: {
+  location?: {
     coordinates: [number, number];
   };
 }

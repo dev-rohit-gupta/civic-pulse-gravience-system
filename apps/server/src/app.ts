@@ -19,8 +19,9 @@ app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json({ limit: '2mb' , type: 'application/json' }));
     
-// Use the error middleware for handling errors
-app.use(errorMiddleware);
 
 // Use the API router for all routes starting with /api
 app.use('/api', apiRouter);
+
+// Use the error middleware for handling errors
+app.use(errorMiddleware);
